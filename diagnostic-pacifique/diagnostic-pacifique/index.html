@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diagnostic Pacifique</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+</head>
+<body>
+
+<div class="page">
+
+  <div class="masthead">
+    <p class="patient-id">DOSSIER PATIENT · N° PAC-2026</p>
+    <h1>Diagnostic Pacifique</h1>
+    <p class="subtitle">Bilan de santé de l'océan — cinq examens, un pronostic</p>
+    <div class="vitals">
+      <div class="vital-chip">
+        <i class="ti ti-thermometer" style="color:var(--clinic-critique);"></i>
+        <span>Temp. <span class="num" id="header-temp">…</span></span>
+      </div>
+      <div class="vital-chip">
+        <i class="ti ti-droplet" style="color:var(--clinic-normal);"></i>
+        <span>Niveau mer <span class="num">à venir</span></span>
+      </div>
+      <div class="vital-chip">
+        <i class="ti ti-heartbeat" style="color:var(--clinic-febrile);"></i>
+        <span>Liste rouge <span class="num">à venir</span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toc">
+    <a href="#act-01">01 fièvre</a>
+    <a href="#act-02">02 œdème</a>
+    <a href="#act-03">03 lésions</a>
+    <a href="#act-04">04 organes</a>
+    <a href="#act-05">05 traitement</a>
+  </div>
+
+  <!-- ACTE 01 · FIÈVRE — module connecté aux données réelles (js/act-01-fievre.js) -->
+  <div class="card" id="act-01">
+    <p class="eyebrow red">01 · FIÈVRE</p>
+    <h3>La température ne redescend plus</h3>
+    <p class="card-text">Anomalie de température de surface de la mer, par pays et territoire du Pacifique. Les seuils fébrile (+1σ) et critique (+2σ) sont recalculés pour chaque pays sur la période de référence 1990-2020.</p>
+
+    <div class="controls">
+      <select id="country-select"></select>
+      <button id="play-btn" aria-label="Lecture automatique">
+        <svg id="play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        <svg id="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+      </button>
+    </div>
+
+    <div class="slider-row">
+      <span id="year-min"></span>
+      <input type="range" id="year-slider" step="1">
+      <span id="year-max"></span>
+    </div>
+
+    <div class="main-row">
+      <div class="thermo-wrap">
+        <svg id="thermo-svg" width="44" height="230"></svg>
+      </div>
+      <div class="readout">
+        <p class="year" id="year-label"></p>
+        <p class="value" id="value-label"></p>
+        <span class="badge" id="status-badge"></span>
+        <p class="seuils" id="seuils-label"></p>
+      </div>
+    </div>
+
+    <svg id="chart-svg" width="100%" height="140" viewBox="0 0 600 140" style="display:block;"></svg>
+
+    <p class="footnote">Source : Pacific Data Hub, .Stat Explorer — indicateurs du changement climatique. Seuils calculés selon la méthode des vagues de chaleur marines (Hobday et al.), adaptée à la granularité annuelle disponible.</p>
+  </div>
+
+  <div class="card">
+    <p class="overview-title" id="overview-title">Vue d'ensemble</p>
+    <p class="overview-sub" id="overview-sub">Tous les pays et territoires, triés du plus fébrile au plus stable.</p>
+    <svg id="overview-svg" width="100%" viewBox="0 0 600 100"></svg>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#0F6E56"></span>normal</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>fébrile (+1σ)</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#A32D2D"></span>critique (+2σ)</div>
+    </div>
+  </div>
+
+  <!-- ACTE 02 · ŒDÈME — maquette statique, à connecter aux anomalies du niveau de la mer (js/act-02-oedeme.js) -->
+  <div class="card" id="act-02">
+    <p class="eyebrow teal">02 · ŒDÈME <span class="placeholder-tag">maquette — données à venir</span></p>
+    <h3>Le corps gonfle, inégalement</h3>
+    <p class="card-text">Trois atolls, trois vitesses de montée des eaux — l'œdème ne progresse pas au même rythme partout.</p>
+    <div class="bar-group">
+      <div>
+        <p class="country-name">Tuvalu</p>
+        <div class="bars">
+          <div style="height:30%; background:#9FE1CB;"></div>
+          <div style="height:48%; background:#5DCAA5;"></div>
+          <div style="height:70%; background:#1D9E75;"></div>
+          <div style="height:92%; background:#0F6E56;"></div>
+        </div>
+      </div>
+      <div>
+        <p class="country-name">Kiribati</p>
+        <div class="bars">
+          <div style="height:35%; background:#9FE1CB;"></div>
+          <div style="height:52%; background:#5DCAA5;"></div>
+          <div style="height:66%; background:#1D9E75;"></div>
+          <div style="height:80%; background:#0F6E56;"></div>
+        </div>
+      </div>
+      <div>
+        <p class="country-name">Fidji</p>
+        <div class="bars">
+          <div style="height:28%; background:#9FE1CB;"></div>
+          <div style="height:34%; background:#5DCAA5;"></div>
+          <div style="height:40%; background:#1D9E75;"></div>
+          <div style="height:48%; background:#0F6E56;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTE 03 · LÉSIONS — maquette statique, à connecter au trait de côte (js/act-03-lesions.js) -->
+  <div class="card" id="act-03">
+    <p class="eyebrow amber">03 · LÉSIONS CUTANÉES <span class="placeholder-tag">maquette — données à venir</span></p>
+    <h3>La peau du littoral se craquelle</h3>
+    <p class="card-text">Comparaison du trait de côte d'un même atoll, à vingt ans d'écart.</p>
+    <div style="display:flex; gap:24px; justify-content:center; align-items:center;">
+      <div style="text-align:center;">
+        <svg width="140" height="90" viewBox="0 0 140 90"><title>Trait de côte en 2005</title>
+          <path d="M20 60 Q 30 30 55 28 Q 85 24 110 40 Q 128 50 120 65 Q 90 78 55 75 Q 30 74 20 60 Z" fill="#EAF3DE" stroke="#639922" stroke-width="1.5"/>
+        </svg>
+        <p style="font-size:11px; font-family:var(--font-mono); color:var(--clinic-ink2); margin:4px 0 0;">2005</p>
+      </div>
+      <i class="ti ti-arrow-right" style="font-size:20px; color:var(--clinic-ink2);"></i>
+      <div style="text-align:center;">
+        <svg width="140" height="90" viewBox="0 0 140 90"><title>Trait de côte en 2025, recul visible</title>
+          <path d="M20 60 Q 30 30 55 28 Q 85 24 110 40 Q 128 50 120 65 Q 90 78 55 75 Q 30 74 20 60 Z" fill="none" stroke="#B4B2A9" stroke-width="1" stroke-dasharray="3 3"/>
+          <path d="M28 58 Q 36 36 56 33 Q 80 30 100 43 Q 114 52 108 62 Q 85 72 56 70 Q 36 69 28 58 Z" fill="#FAC775" stroke="#BA7517" stroke-width="1.5"/>
+        </svg>
+        <p style="font-size:11px; font-family:var(--font-mono); color:var(--clinic-ink2); margin:4px 0 0;">2025</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTE 04 · ORGANES VITAUX — maquette statique, à connecter à l'indice Liste Rouge (js/act-04-organes.js) -->
+  <div class="card" id="act-04">
+    <p class="eyebrow red">04 · ORGANES VITAUX <span class="placeholder-tag">maquette — données à venir</span></p>
+    <h3>Le pouls faiblit</h3>
+    <p class="card-text">L'indice de la Liste rouge décline — les battements de l'écosystème marin s'affaiblissent avec le temps.</p>
+    <svg width="100%" viewBox="0 0 600 90" style="display:block;">
+      <title>Évolution de l'indice de la Liste rouge, amplitude décroissante dans le temps</title>
+      <path d="M0 45 L40 45 L52 15 L64 70 L76 45 L140 45 L150 22 L160 60 L170 45 L240 45 L248 28 L256 55 L264 45 L340 45 L346 32 L352 50 L358 45 L440 45 L444 36 L448 48 L452 45 L540 45 L543 40 L546 46 L549 45 L600 45" fill="none" stroke="#A32D2D" stroke-width="1.5"/>
+    </svg>
+  </div>
+
+  <!-- ACTE 05 · TRAITEMENT — maquette statique, à connecter aux mesures de gestion des pêches (js/act-05-traitement.js) -->
+  <div class="card" id="act-05">
+    <p class="eyebrow teal">05 · TRAITEMENT <span class="placeholder-tag">maquette — données à venir</span></p>
+    <h3>L'ordonnance est déjà rédigée</h3>
+    <table style="width:100%; border-collapse:collapse; font-size:13px;">
+      <tr style="border-bottom:0.5px solid var(--clinic-line);">
+        <td style="padding:6px 0; color:var(--clinic-ink2);">Fidji</td>
+        <td style="padding:6px 0; text-align:right;"><i class="ti ti-check" style="color:var(--clinic-normal);"></i> mesures en place</td>
+      </tr>
+      <tr style="border-bottom:0.5px solid var(--clinic-line);">
+        <td style="padding:6px 0; color:var(--clinic-ink2);">Kiribati</td>
+        <td style="padding:6px 0; text-align:right;"><i class="ti ti-x" style="color:var(--clinic-critique);"></i> mesures partielles</td>
+      </tr>
+      <tr>
+        <td style="padding:6px 0; color:var(--clinic-ink2);">Tuvalu</td>
+        <td style="padding:6px 0; text-align:right;"><i class="ti ti-check" style="color:var(--clinic-normal);"></i> mesures en place</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- ÉPILOGUE -->
+  <div style="text-align:center; margin-bottom:6px;">
+    <p style="font-size:11px; font-family:var(--font-mono); color:var(--clinic-ink2); letter-spacing:0.04em; margin:0 0 10px;">FICHE PATIENT — SYNTHÈSE</p>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <p>Tuvalu</p>
+        <span class="badge" style="background:var(--clinic-critique-bg); color:var(--clinic-critique);">critique</span>
+      </div>
+      <div class="summary-card">
+        <p>Kiribati</p>
+        <span class="badge" style="background:var(--clinic-febrile-bg); color:var(--clinic-febrile);">surveillance</span>
+      </div>
+      <div class="summary-card">
+        <p>Fidji</p>
+        <span class="badge" style="background:var(--clinic-normal-bg); color:var(--clinic-normal);">stable</span>
+      </div>
+    </div>
+  </div>
+
+  <p class="page-footnote">Acte 01 (fièvre) est connecté aux données réelles du Pacific Data Hub. Les actes 02 à 05 sont encore des maquettes illustratives, à connecter aux jeux de données correspondants.</p>
+
+</div>
+
+<!-- Données -->
+<script src="data/sst-data.js"></script>
+
+<!-- Fonctions partagées -->
+<script src="js/utils.js"></script>
+
+<!-- Un fichier par acte, chacun isolé dans sa propre IIFE -->
+<script src="js/act-01-fievre.js"></script>
+<script src="js/act-02-oedeme.js"></script>
+<script src="js/act-03-lesions.js"></script>
+<script src="js/act-04-organes.js"></script>
+<script src="js/act-05-traitement.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,205 @@
+:root {
+  --clinic-bg: #F4F7F6;
+  --clinic-paper: #FFFFFF;
+  --clinic-ink: #1E2E2B;
+  --clinic-ink2: #5B6C68;
+  --clinic-line: #DCE3E1;
+  --clinic-normal: #0F6E56;
+  --clinic-normal-bg: #E1F5EE;
+  --clinic-febrile: #BA7517;
+  --clinic-febrile-bg: #FAEEDA;
+  --clinic-critique: #A32D2D;
+  --clinic-critique-bg: #FCEBEB;
+  --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--clinic-bg);
+  color: var(--clinic-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  justify-content: center;
+  padding: 40px 16px 80px;
+}
+
+.page { width: 100%; max-width: 640px; }
+
+.masthead { text-align: center; margin-bottom: 22px; }
+
+.patient-id {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: var(--clinic-ink2);
+  margin: 0 0 6px;
+  font-family: var(--font-mono);
+}
+
+h1 {
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 8px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--clinic-ink2);
+  margin: 0 0 18px;
+}
+
+.vitals { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+
+.vital-chip {
+  background: var(--clinic-paper);
+  border: 0.5px solid var(--clinic-line);
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.vital-chip .num { font-family: var(--font-mono); font-weight: 500; }
+
+.toc { display: flex; justify-content: center; gap: 6px; margin: 24px 0; flex-wrap: wrap; }
+
+.toc a {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--clinic-ink2);
+  background: var(--clinic-paper);
+  border: 0.5px solid var(--clinic-line);
+  border-radius: 20px;
+  padding: 4px 10px;
+  text-decoration: none;
+}
+.toc a:hover { border-color: var(--clinic-ink2); }
+
+.card {
+  background: var(--clinic-paper);
+  border: 0.5px solid var(--clinic-line);
+  border-radius: 10px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.eyebrow {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  margin: 0 0 4px;
+}
+.eyebrow.red { color: var(--clinic-critique); }
+.eyebrow.teal { color: var(--clinic-normal); }
+.eyebrow.amber { color: var(--clinic-febrile); }
+
+h3 { font-size: 16px; font-weight: 500; margin: 0 0 6px; }
+
+.card-text {
+  font-size: 13px;
+  color: var(--clinic-ink2);
+  margin: 0 0 14px;
+  line-height: 1.6;
+}
+
+/* --- Acte 01 : contrôles interactifs --- */
+.controls { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+
+select {
+  flex: 1;
+  min-width: 200px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid var(--clinic-line);
+  background: var(--clinic-paper);
+  color: var(--clinic-ink);
+  font-size: 13px;
+  padding: 0 8px;
+}
+
+button#play-btn {
+  height: 34px;
+  width: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--clinic-line);
+  background: var(--clinic-paper);
+  color: var(--clinic-ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+button#play-btn:hover { background: var(--clinic-bg); }
+button#play-btn:active { transform: scale(0.96); }
+
+.slider-row { display: flex; align-items: center; gap: 10px; margin: 14px 0 24px; }
+
+.slider-row span {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--clinic-ink2);
+  min-width: 34px;
+}
+
+input[type="range"] { flex: 1; accent-color: var(--clinic-ink); }
+
+.main-row { display: flex; gap: 28px; align-items: flex-end; margin-bottom: 20px; }
+
+.thermo-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+
+.readout { flex: 1; min-width: 0; }
+.readout .year { font-size: 13px; color: var(--clinic-ink2); margin: 0 0 4px; }
+.readout .value {
+  font-size: 34px;
+  font-weight: 500;
+  font-family: var(--font-mono);
+  margin: 0 0 8px;
+  transition: color 0.2s;
+}
+
+.badge { display: inline-block; font-size: 12px; font-family: var(--font-mono); padding: 3px 10px; border-radius: 12px; }
+
+.seuils { font-size: 12px; color: var(--clinic-ink2); line-height: 1.6; margin: 12px 0 0; }
+
+.axis text { font-size: 10px; fill: var(--clinic-ink2); font-family: var(--font-mono); }
+.axis path, .axis line { stroke: var(--clinic-line); }
+
+.footnote { font-size: 11px; color: var(--clinic-ink2); margin-top: 18px; line-height: 1.6; }
+
+.overview-title { font-size: 16px; font-weight: 500; margin: 0 0 4px; }
+.overview-sub { font-size: 13px; color: var(--clinic-ink2); margin: 0 0 14px; }
+
+.legend { display: flex; gap: 16px; margin-top: 12px; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--clinic-ink2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+.ov-row rect { transition: x 0.3s, width 0.3s; }
+.ov-row:hover rect { opacity: 0.8; }
+
+/* --- Actes 02-05 : maquettes statiques, à connecter ensuite --- */
+.placeholder-tag {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--clinic-ink2);
+  background: var(--clinic-bg);
+  border: 0.5px dashed var(--clinic-line);
+  border-radius: 4px;
+  padding: 2px 6px;
+  margin-left: 6px;
+}
+
+.bar-group { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; }
+.bar-group .country-name { font-size: 12px; font-weight: 500; margin: 0 0 6px; }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 48px; }
+.bars > div { width: 100%; border-radius: 2px 2px 0 0; }
+
+.summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+.summary-card { background: var(--clinic-paper); border: 0.5px solid var(--clinic-line); border-radius: 10px; padding: 12px; }
+.summary-card p { font-size: 13px; font-weight: 500; margin: 0 0 6px; }
+
+.page-footnote { font-size: 11px; color: var(--clinic-ink2); text-align: center; margin: 20px 0 0; }
