@@ -203,3 +203,13 @@ input[type="range"] { flex: 1; accent-color: var(--clinic-ink); }
 .summary-card p { font-size: 13px; font-weight: 500; margin: 0 0 6px; }
 
 .page-footnote { font-size: 11px; color: var(--clinic-ink2); text-align: center; margin: 20px 0 0; }
+
+@keyframes thermoPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+#thermo-svg circle.pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: thermoPulse 1.3s ease-in-out infinite;
+}

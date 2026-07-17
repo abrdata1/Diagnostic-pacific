@@ -1,7 +1,6 @@
 // act-01-fievre.js
-// Acte 01 · Fièvre — anomalies de température de surface de la mer.
+// Acte 01 · Fièvre - anomalies de température de surface de la mer.
 // Dépend de : d3 (CDN), data/sst-data.js (SST_DATA), js/utils.js
-// Isolé dans une IIFE pour ne pas polluer le scope global du reste de la page.
 
 (function () {
   const BASELINE_START = 1990;
@@ -41,23 +40,69 @@
 
   // --- Thermomètre ---
   const thermoSvg = d3.select('#thermo-svg');
-  const TUBE_X = 6, TUBE_W = 24, TUBE_TOP = 6, TUBE_H = 190, BULB_CY = TUBE_TOP + TUBE_H + 16, BULB_R = 18;
+  const TUBE_X = 20, TUBE_W = 26, TUBE_TOP = 8, TUBE_H = 190, BULB_CY = TUBE_TOP + TUBE_H + 18, BULB_R = 20;
+  thermoSvg.attr('width', 64).attr('height', BULB_CY + BULB_R + 6);
+
+  const defs = thermoSvg.append('defs');
+
+  // Dégradés "liquide" par statut - clair en haut, saturé en bas
+  const gradients = {
+    normal: ['#6FD9B8', '#0F6E56'],
+    febrile: ['#F2C879', '#BA7517'],
+    critique: ['#E8938A', '#A32D2D']
+  };
+  Object.entries(gradients).forEach(([key, [light, dark]]) => {
+    const grad = defs.append('linearGradient')
+      .attr('id', `grad-${key}`).attr('x1', '0').attr('x2', '0').attr('y1', '0').attr('y2', '1');
+    grad.append('stop').attr('offset', '0%').attr('stop-color', light);
+    grad.append('stop').attr('offset', '100%').attr('stop-color', dark);
+  });
+
+  // Ombre douce pour donner du relief au bulbe
+  const shadow = defs.append('filter').attr('id', 'thermo-shadow').attr('x', '-60%').attr('y', '-60%').attr('width', '220%').attr('height', '220%');
+  shadow.append('feDropShadow').attr('dx', 0).attr('dy', 1).attr('stdDeviation', 1.4).attr('flood-color', '#1E2E2B').attr('flood-opacity', 0.18);
+
+  // Graduations le long du tube, tous les 0,5°C (plus longues tous les 1°C)
+  const tickValues = d3.range(Math.ceil(SCALE_MIN * 2) / 2, SCALE_MAX + 0.01, 0.5);
+  tickValues.forEach(val => {
+    const y = TUBE_TOP + TUBE_H * (1 - pct(val));
+    const isMajor = Math.abs(Math.round(val) - val) < 0.01;
+    thermoSvg.append('line')
+      .attr('x1', TUBE_X - 4 - (isMajor ? 4 : 0)).attr('x2', TUBE_X - 4)
+      .attr('y1', y).attr('y2', y)
+      .attr('stroke', '#C7D0CD').attr('stroke-width', 1);
+  });
+
+  // Tube en verre : contour + contenu clippé pour un rendu propre
+  defs.append('clipPath').attr('id', 'thermo-clip').append('rect')
+    .attr('x', TUBE_X).attr('y', TUBE_TOP).attr('width', TUBE_W).attr('height', TUBE_H).attr('rx', TUBE_W / 2);
 
   thermoSvg.append('rect')
     .attr('x', TUBE_X).attr('y', TUBE_TOP).attr('width', TUBE_W).attr('height', TUBE_H)
-    .attr('rx', TUBE_W / 2).attr('fill', 'none').attr('stroke', '#DCE3E1');
+    .attr('rx', TUBE_W / 2).attr('fill', '#FAFCFB').attr('stroke', '#DCE3E1').attr('stroke-width', 1.5);
 
-  const zoneNormal = thermoSvg.append('rect').attr('x', TUBE_X).attr('width', TUBE_W);
-  const zoneFebrile = thermoSvg.append('rect').attr('x', TUBE_X).attr('width', TUBE_W);
-  const zoneCritique = thermoSvg.append('rect').attr('x', TUBE_X).attr('width', TUBE_W);
-  const mercury = thermoSvg.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('rx', TUBE_W / 2);
-  const bulb = thermoSvg.append('circle').attr('cx', TUBE_X + TUBE_W / 2).attr('cy', BULB_CY).attr('r', BULB_R).attr('stroke', '#DCE3E1');
+  const tubeContent = thermoSvg.append('g').attr('clip-path', 'url(#thermo-clip)');
+  const zoneNormal = tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('fill', '#E1F5EE');
+  const zoneFebrile = tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('fill', '#FAEEDA');
+  const zoneCritique = tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('fill', '#FCEBEB');
+  const mercury = tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W);
 
-  thermoSvg.attr('height', BULB_CY + BULB_R + 4);
+  // Reflet "verre", purement décoratif, au-dessus du liquide
+  thermoSvg.append('rect')
+    .attr('x', TUBE_X + 4).attr('y', TUBE_TOP + 5).attr('width', 4).attr('height', TUBE_H - 10)
+    .attr('rx', 2).attr('fill', '#FFFFFF').attr('opacity', 0.4);
+
+  const bulb = thermoSvg.append('circle')
+    .attr('cx', TUBE_X + TUBE_W / 2).attr('cy', BULB_CY).attr('r', BULB_R)
+    .attr('stroke', '#DCE3E1').attr('stroke-width', 1.5).attr('filter', 'url(#thermo-shadow)');
+
+  // Curseurs de seuils, repositionnés à chaque render()
+  const seuil1Marker = thermoSvg.append('path').attr('d', 'M8,-5 L0,0 L8,5 Z').attr('fill', '#BA7517');
+  const seuil2Marker = thermoSvg.append('path').attr('d', 'M8,-5 L0,0 L8,5 Z').attr('fill', '#A32D2D');
 
   // --- Courbe de série temporelle ---
   const chartSvg = d3.select('#chart-svg');
-  const CHART_W = 600, CHART_H = 140, CHART_PAD = { top: 10, right: 10, bottom: 24, left: 34 };
+  const CHART_W = 600, CHART_H = 140, CHART_PAD = { top: 10, right: 10, bottom: 24, left: 40 };
   const xScale = d3.scaleLinear().domain([years[0], years[years.length - 1]]).range([CHART_PAD.left, CHART_W - CHART_PAD.right]);
   let yScale = d3.scaleLinear().range([CHART_H - CHART_PAD.bottom, CHART_PAD.top]);
 
@@ -94,7 +139,7 @@
       return { name, v, statusKey: getStatusKey(v, seuil1, seuil2) };
     }).sort((a, b) => b.v - a.v);
 
-    document.getElementById('overview-title').textContent = `Vue d'ensemble — le Pacifique en ${year}`;
+    document.getElementById('overview-title').textContent = `Vue d'ensemble - le Pacifique en ${year}`;
     const nFievre = rows.filter(r => r.statusKey !== 'normal').length;
     document.getElementById('overview-sub').textContent =
       `${nFievre} pays sur ${rows.length} au-dessus de leur seuil fébrile en ${year}. Cliquez un pays pour l'ouvrir ci-dessus.`;
@@ -105,7 +150,7 @@
     rowEnter.append('text').attr('class', 'ov-label')
       .attr('text-anchor', 'end').attr('dominant-baseline', 'central')
       .style('font-size', '11px').style('fill', '#5B6C68');
-    rowEnter.append('rect').attr('class', 'ov-bar');
+    rowEnter.append('rect').attr('class', 'ov-bar').attr('rx', 3).attr('ry', 3);
     rowEnter.append('text').attr('class', 'ov-value')
       .attr('dominant-baseline', 'central')
       .style('font-size', '11px').style('font-family', 'monospace').style('fill', '#1E2E2B');
@@ -157,14 +202,19 @@
     const y1 = TUBE_TOP + TUBE_H * (1 - p1);
     const y2 = TUBE_TOP + TUBE_H * (1 - p2);
 
-    zoneNormal.attr('y', y1).attr('height', TUBE_TOP + TUBE_H - y1).attr('fill', '#E1F5EE');
-    zoneFebrile.attr('y', y2).attr('height', y1 - y2).attr('fill', '#FAEEDA');
-    zoneCritique.attr('y', TUBE_TOP).attr('height', y2 - TUBE_TOP).attr('fill', '#FCEBEB');
+    zoneNormal.attr('y', y1).attr('height', TUBE_TOP + TUBE_H - y1);
+    zoneFebrile.attr('y', y2).attr('height', y1 - y2);
+    zoneCritique.attr('y', TUBE_TOP).attr('height', y2 - TUBE_TOP);
 
     const mercuryY = TUBE_TOP + TUBE_H * (1 - pct(v));
-    mercury.attr('y', mercuryY).attr('height', TUBE_TOP + TUBE_H - mercuryY).attr('fill', colors.fill);
-    bulb.attr('fill', colors.fill);
+    mercury.transition().duration(250)
+      .attr('y', mercuryY).attr('height', TUBE_TOP + TUBE_H - mercuryY)
+      .attr('fill', `url(#grad-${statusKey})`);
+    bulb.transition().duration(250).attr('fill', `url(#grad-${statusKey})`);
+    bulb.classed('pulse', statusKey === 'critique');
 
+    seuil1Marker.transition().duration(250).attr('transform', `translate(${TUBE_X + TUBE_W + 2}, ${y1})`);
+    seuil2Marker.transition().duration(250).attr('transform', `translate(${TUBE_X + TUBE_W + 2}, ${y2})`);
     document.getElementById('year-label').textContent = year;
     document.getElementById('value-label').textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + '°C';
     document.getElementById('value-label').style.color = colors.fill;
@@ -182,7 +232,8 @@
     const lineGen = d3.line()
       .defined((d, i) => values[i] !== null)
       .x((d, i) => xScale(years[i]))
-      .y(d => yScale(d));
+      .y(d => yScale(d))
+      .curve(d3.curveCatmullRom.alpha(0.5));
     linePath.datum(values).attr('d', lineGen);
 
     xAxisG.call(d3.axisBottom(xScale).ticks(6).tickFormat(d3.format('d')));
