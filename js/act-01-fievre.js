@@ -11,16 +11,6 @@
 
   const years = SST_DATA.years;
   const countryNames = Object.keys(SST_DATA.countries);
-
-  const select = document.getElementById('country-select');
-  countryNames.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    select.appendChild(opt);
-  });
-  select.value = countryNames.includes('Papouasie-Nouvelle-Guinée') ? 'Papouasie-Nouvelle-Guinée' : countryNames[0];
-
   const slider = document.getElementById('year-slider');
   slider.min = years[0];
   slider.max = years[years.length - 1];
@@ -39,9 +29,12 @@
   }
 
   // --- Thermomètre ---
+// --- Thermomètre ---
+  // Une seule capsule arrondie aux deux extrémités (comme un pictogramme de
+  // thermomètre classique), plus simple qu'un tube + bulbe séparés.
   const thermoSvg = d3.select('#thermo-svg');
-  const TUBE_X = 20, TUBE_W = 26, TUBE_TOP = 8, TUBE_H = 190, BULB_CY = TUBE_TOP + TUBE_H + 18, BULB_R = 20;
-  thermoSvg.attr('width', 64).attr('height', BULB_CY + BULB_R + 6);
+  const TUBE_X = 20, TUBE_W = 26, TUBE_TOP = 8, TUBE_H = 190;
+  thermoSvg.attr('width', 64).attr('height', TUBE_TOP + TUBE_H + 8);
 
   const defs = thermoSvg.append('defs');
 
@@ -58,9 +51,9 @@
     grad.append('stop').attr('offset', '100%').attr('stop-color', dark);
   });
 
-  // Ombre douce pour donner du relief au bulbe
-  const shadow = defs.append('filter').attr('id', 'thermo-shadow').attr('x', '-60%').attr('y', '-60%').attr('width', '220%').attr('height', '220%');
-  shadow.append('feDropShadow').attr('dx', 0).attr('dy', 1).attr('stdDeviation', 1.4).attr('flood-color', '#1E2E2B').attr('flood-opacity', 0.18);
+  // Ombre douce pour donner un peu de relief à la capsule entière
+  const shadow = defs.append('filter').attr('id', 'thermo-shadow').attr('x', '-40%').attr('y', '-15%').attr('width', '180%').attr('height', '130%');
+  shadow.append('feDropShadow').attr('dx', 0).attr('dy', 1).attr('stdDeviation', 1.2).attr('flood-color', '#1E2E2B').attr('flood-opacity', 0.15);
 
   // Graduations le long du tube, tous les 0,5°C (plus longues tous les 1°C)
   const tickValues = d3.range(Math.ceil(SCALE_MIN * 2) / 2, SCALE_MAX + 0.01, 0.5);
@@ -73,13 +66,15 @@
       .attr('stroke', '#C7D0CD').attr('stroke-width', 1);
   });
 
-  // Tube en verre : contour + contenu clippé pour un rendu propre
+  // Capsule : contour + contenu clippé (rx = moitié de la largeur → arrondi
+  // complet en haut et en bas, donc plus besoin d'un bulbe séparé)
   defs.append('clipPath').attr('id', 'thermo-clip').append('rect')
     .attr('x', TUBE_X).attr('y', TUBE_TOP).attr('width', TUBE_W).attr('height', TUBE_H).attr('rx', TUBE_W / 2);
 
-  thermoSvg.append('rect')
+  const tubeOutline = thermoSvg.append('rect')
     .attr('x', TUBE_X).attr('y', TUBE_TOP).attr('width', TUBE_W).attr('height', TUBE_H)
-    .attr('rx', TUBE_W / 2).attr('fill', '#FAFCFB').attr('stroke', '#DCE3E1').attr('stroke-width', 1.5);
+    .attr('rx', TUBE_W / 2).attr('fill', '#FAFCFB').attr('stroke', '#DCE3E1').attr('stroke-width', 1.5)
+    .attr('filter', 'url(#thermo-shadow)');
 
   const tubeContent = thermoSvg.append('g').attr('clip-path', 'url(#thermo-clip)');
   const zoneNormal = tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('fill', '#E1F5EE');
@@ -91,10 +86,6 @@
   thermoSvg.append('rect')
     .attr('x', TUBE_X + 4).attr('y', TUBE_TOP + 5).attr('width', 4).attr('height', TUBE_H - 10)
     .attr('rx', 2).attr('fill', '#FFFFFF').attr('opacity', 0.4);
-
-  const bulb = thermoSvg.append('circle')
-    .attr('cx', TUBE_X + TUBE_W / 2).attr('cy', BULB_CY).attr('r', BULB_R)
-    .attr('stroke', '#DCE3E1').attr('stroke-width', 1.5).attr('filter', 'url(#thermo-shadow)');
 
   // Curseurs de seuils, repositionnés à chaque render()
   const seuil1Marker = thermoSvg.append('path').attr('d', 'M8,-5 L0,0 L8,5 Z').attr('fill', '#BA7517');
@@ -112,82 +103,122 @@
   const markerLine = chartSvg.append('line').attr('y1', CHART_PAD.top).attr('y2', CHART_H - CHART_PAD.bottom).attr('stroke', '#DCE3E1');
   const markerPoint = chartSvg.append('circle').attr('r', 4);
 
-  // --- Vue d'ensemble (tous les pays, année courante) ---
+  // --- Vue d'ensemble : ligne graduée façon "chambre d'hôpital" ---
+  // Chaque pays est un point sur un même axe d'anomalie (même échelle que le
+  // thermomètre), dispersé verticalement pour éviter les chevauchements
+  // (beeswarm). La couleur du point est le seul porteur du statut clinique -
+  // pas de bande de fond, puisque les seuils sont propres à chaque pays et
+  // qu'une bande commune raconterait une histoire fausse.
   const overviewSvg = d3.select('#overview-svg');
   const OV_W = 600;
-  const OV_LABEL_W = 180;
-  const OV_PAD = { top: 6, right: 46, bottom: 6, left: OV_LABEL_W };
-  const OV_ROW_H = 18;
-  const OV_GAP = 4;
-  const OV_HEIGHT = OV_PAD.top + OV_PAD.bottom + countryNames.length * (OV_ROW_H + OV_GAP);
-  overviewSvg.attr('viewBox', `0 0 ${OV_W} ${OV_HEIGHT}`);
+  const OV_H = 110;
+  overviewSvg.attr('viewBox', `0 0 ${OV_W} ${OV_H}`);
 
-  const ovBarScale = d3.scaleLinear().domain([SCALE_MIN, SCALE_MAX]).range([0, OV_W - OV_PAD.left - OV_PAD.right]);
-  const ovZeroX = OV_PAD.left + ovBarScale(0);
+  const overviewScale = d3.scaleLinear().domain([SCALE_MIN, SCALE_MAX]).range([50, 550]);
+  const LINE_Y = 55;
+  const SWARM_Y_MIN = 28, SWARM_Y_MAX = 82;
+
+  // ligne de référence
   overviewSvg.append('line')
-    .attr('x1', ovZeroX).attr('x2', ovZeroX)
-    .attr('y1', OV_PAD.top).attr('y2', OV_HEIGHT - OV_PAD.bottom)
-    .attr('stroke', '#DCE3E1');
+    .attr('x1', overviewScale(SCALE_MIN)).attr('x2', overviewScale(SCALE_MAX))
+    .attr('y1', LINE_Y).attr('y2', LINE_Y)
+    .attr('stroke', '#B4B2A9');
+
+  // graduations
+  [-2, -1, 0, 1].forEach(v => {
+    const x = overviewScale(v);
+    overviewSvg.append('line')
+      .attr('x1', x).attr('x2', x)
+      .attr('y1', LINE_Y - 7).attr('y2', LINE_Y + 7)
+      .attr('stroke', '#8D9A96');
+    overviewSvg.append('text')
+      .attr('x', x).attr('y', LINE_Y + 37)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '10px').style('font-family', 'monospace').style('fill', '#5B6C68')
+      .text(v > 0 ? '+' + v + '°' : v + '°');
+  });
+
+  const pointsLayer = overviewSvg.append('g');
+
+  // Label du pays sélectionné : toujours visible, suit le point d'une année
+  // à l'autre pour qu'on ne perde jamais son pays de vue dans l'essaim.
+  const selectedLabel = overviewSvg.append('text')
+    .attr('text-anchor', 'middle')
+    .style('font-size', '11px').style('font-family', 'monospace').style('font-weight', '600')
+    .style('fill', '#1E2E2B').style('pointer-events', 'none');
+
+  // Disperse les points verticalement pour éviter qu'ils ne se chevauchent
+  // (beeswarm), tout en gardant leur position horizontale fidèle à la valeur.
+  function computeBeeswarm(points) {
+    const simulation = d3.forceSimulation(points)
+      .force('x', d3.forceX(d => overviewScale(d.v)).strength(1))
+      .force('y', d3.forceY(LINE_Y).strength(0.4))
+      .force('collision', d3.forceCollide(6.5))
+      .stop();
+
+    for (let i = 0; i < 150; i++) simulation.tick();
+
+    points.forEach(d => {
+      d.x = Math.max(50, Math.min(550, d.x));
+      d.y = Math.max(SWARM_Y_MIN, Math.min(SWARM_Y_MAX, d.y));
+    });
+    return points;
+  }
 
   function renderOverview(year) {
     const idx = years.indexOf(year);
     const rows = countryNames.map(name => {
       const values = SST_DATA.countries[name];
       const v = values[idx];
-      const { mean, sd } = computeStats(values, years, BASELINE_START, BASELINE_END);
-      const seuil1 = mean + sd, seuil2 = mean + 2 * sd;
+      const stats = computeStats(values, years, BASELINE_START, BASELINE_END);
+      const seuil1 = stats.mean + stats.sd;
+      const seuil2 = stats.mean + 2 * stats.sd;
       return { name, v, statusKey: getStatusKey(v, seuil1, seuil2) };
-    }).sort((a, b) => b.v - a.v);
+    });
 
-    document.getElementById('overview-title').textContent = `Vue d'ensemble - le Pacifique en ${year}`;
-    const nFievre = rows.filter(r => r.statusKey !== 'normal').length;
+    document.getElementById('overview-title').textContent = `Vue d'ensemble — le Pacifique en ${year}`;
+    const nFievre = rows.filter(d => d.statusKey !== 'normal').length;
     document.getElementById('overview-sub').textContent =
-      `${nFievre} pays sur ${rows.length} au-dessus de leur seuil fébrile en ${year}. Cliquez un pays pour l'ouvrir ci-dessus.`;
+      `${nFievre} pays sur ${rows.length} au-dessus de leur seuil fébrile en ${year}. Survolez ou cliquez un point.`;
 
-    const rowSel = overviewSvg.selectAll('g.ov-row').data(rows, d => d.name);
+    const data = computeBeeswarm(rows.map(d => ({ ...d, x: overviewScale(d.v), y: LINE_Y })));
 
-    const rowEnter = rowSel.enter().append('g').attr('class', 'ov-row');
-    rowEnter.append('text').attr('class', 'ov-label')
-      .attr('text-anchor', 'end').attr('dominant-baseline', 'central')
-      .style('font-size', '11px').style('fill', '#5B6C68');
-    rowEnter.append('rect').attr('class', 'ov-bar').attr('rx', 3).attr('ry', 3);
-    rowEnter.append('text').attr('class', 'ov-value')
-      .attr('dominant-baseline', 'central')
-      .style('font-size', '11px').style('font-family', 'monospace').style('fill', '#1E2E2B');
+    const circles = pointsLayer.selectAll('circle').data(data, d => d.name);
 
-    const rowAll = rowEnter.merge(rowSel);
-    rowAll
-      .attr('transform', (d, i) => `translate(0, ${OV_PAD.top + i * (OV_ROW_H + OV_GAP)})`)
+    const circlesEnter = circles.enter().append('circle')
+      .attr('r', 5)
       .style('cursor', 'pointer')
-      .on('click', (event, d) => {
-        select.value = d.name;
-        stopPlaying();
-        render();
-      });
+      .on('click', (event, d) => { setCurrentPatient(d.name); stopPlaying(); render(); });
+    circlesEnter.append('title');
 
-    rowAll.select('text.ov-label')
-      .attr('x', OV_PAD.left - 8).attr('y', OV_ROW_H / 2)
-      .text(d => d.name);
+    const circlesMerged = circlesEnter.merge(circles);
 
-    rowAll.select('rect.ov-bar')
-      .attr('y', 2).attr('height', OV_ROW_H - 4)
-      .attr('x', d => OV_PAD.left + Math.min(ovBarScale(d.v), ovBarScale(0)))
-      .attr('width', d => Math.abs(ovBarScale(d.v) - ovBarScale(0)))
+    circlesMerged.select('title')
+      .text(d => `${d.name} : ${d.v >= 0 ? '+' : ''}${d.v.toFixed(1)}°C`);
+
+    circlesMerged.transition().duration(300)
+      .attr('cx', d => d.x).attr('cy', d => d.y)
       .attr('fill', d => STATUS_COLORS[d.statusKey].fill)
-      .attr('stroke', d => d.name === select.value ? '#1E2E2B' : 'none')
-      .attr('stroke-width', d => d.name === select.value ? 1.5 : 0);
+      .attr('fill-opacity', d => d.name === getCurrentPatient() ? 1 : 0.4)
+      .attr('stroke-width', d => d.name === getCurrentPatient() ? 2 : 0);
 
-    rowAll.select('text.ov-value')
-      .attr('x', d => OV_PAD.left + ovBarScale(d.v) + (d.v >= 0 ? 6 : -6))
-      .attr('y', OV_ROW_H / 2)
-      .attr('text-anchor', d => d.v >= 0 ? 'start' : 'end')
-      .text(d => (d.v >= 0 ? '+' : '') + d.v.toFixed(1) + '°');
+    circles.exit().remove();
 
-    rowSel.exit().remove();
+    const selected = data.find(d => d.name === getCurrentPatient());
+    if (selected) {
+      selectedLabel.transition().duration(300)
+        .attr('x', Math.max(60, Math.min(540, selected.x)))
+        .attr('y', selected.y - 11)
+        .text(selected.name);
+    } else {
+      selectedLabel.text('');
+    }
   }
 
   function render() {
-    const name = select.value;
+    const name = getCurrentPatient();
+    const patientNameEl = document.getElementById('act01-patient-name');
+    if (patientNameEl) patientNameEl.textContent = name;
     const values = SST_DATA.countries[name];
     const year = parseInt(slider.value, 10);
     const idx = years.indexOf(year);
@@ -210,11 +241,12 @@
     mercury.transition().duration(250)
       .attr('y', mercuryY).attr('height', TUBE_TOP + TUBE_H - mercuryY)
       .attr('fill', `url(#grad-${statusKey})`);
-    bulb.transition().duration(250).attr('fill', `url(#grad-${statusKey})`);
-    bulb.classed('pulse', statusKey === 'critique');
+    
+    tubeOutline.classed('pulse', statusKey === 'critique');
 
     seuil1Marker.transition().duration(250).attr('transform', `translate(${TUBE_X + TUBE_W + 2}, ${y1})`);
     seuil2Marker.transition().duration(250).attr('transform', `translate(${TUBE_X + TUBE_W + 2}, ${y2})`);
+
     document.getElementById('year-label').textContent = year;
     document.getElementById('value-label').textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + '°C';
     document.getElementById('value-label').style.color = colors.fill;
@@ -274,8 +306,7 @@
     else startPlaying();
   });
 
-  select.addEventListener('change', () => { stopPlaying(); render(); });
   slider.addEventListener('input', () => { stopPlaying(); render(); });
-
+  document.addEventListener('patientchange', () => { stopPlaying(); render(); });
   render();
 })();

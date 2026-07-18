@@ -43,3 +43,25 @@ function getStatusKey(value, seuil1, seuil2) {
   if (value >= seuil1) return 'febrile';
   return 'normal';
 }
+
+/**
+ * Régression linéaire simple (moindres carrés ordinaires).
+ * Retourne la pente et l'ordonnée à l'origine de y = intercept + slope * x.
+ * Utilisée pour les indicateurs qui ne "reviennent" jamais à une normale
+ * (tendance monotone, ex: niveau de la mer) plutôt qu'un écart à une
+ * moyenne de référence comme pour les anomalies de température.
+ * @param {Array<number>} xs
+ * @param {Array<number>} ys
+ * @returns {{slope: number, intercept: number}}
+ */
+function linearRegression(xs, ys) {
+  const n = xs.length;
+  const meanX = d3.mean(xs);
+  const meanY = d3.mean(ys);
+  let num = 0, den = 0;
+  for (let i = 0; i < n; i++) {
+    num += (xs[i] - meanX) * (ys[i] - meanY);
+    den += (xs[i] - meanX) ** 2;
+  }
+  return { slope: num / den, intercept: meanY - (num / den) * meanX };
+}

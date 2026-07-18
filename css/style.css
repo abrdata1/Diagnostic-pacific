@@ -108,7 +108,7 @@ h3 { font-size: 16px; font-weight: 500; margin: 0 0 6px; }
 }
 
 /* --- Acte 01 : contrôles interactifs --- */
-.controls { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
+.controls { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; flex-wrap: wrap; }
 
 select {
   flex: 1;
@@ -152,6 +152,8 @@ input[type="range"] { flex: 1; accent-color: var(--clinic-ink); }
 .main-row { display: flex; gap: 28px; align-items: flex-end; margin-bottom: 20px; }
 
 .thermo-wrap { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; }
+
+
 
 .readout { flex: 1; min-width: 0; }
 .readout .year { font-size: 13px; color: var(--clinic-ink2); margin: 0 0 4px; }
@@ -204,11 +206,42 @@ input[type="range"] { flex: 1; accent-color: var(--clinic-ink); }
 
 .page-footnote { font-size: 11px; color: var(--clinic-ink2); text-align: center; margin: 20px 0 0; }
 
+.patient-picker {
+  min-height: 56vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  gap: 12px; padding: 20px 0 40px;
+}
+.picker-eyebrow { font-size: 11px; font-family: var(--font-mono); letter-spacing: 0.06em; color: var(--clinic-ink2); margin: 0; }
+.picker-title { font-size: 22px; font-weight: 600; margin: 0 0 6px; max-width: 380px; }
+.patient-picker select.patient-select { font-size: 15px; height: 42px; min-width: 260px; max-width: 340px; text-align: center; text-align-last: center; }
+.picker-start-btn {
+  margin-top: 12px; font-size: 14px; font-weight: 500; background: var(--clinic-ink); color: #fff;
+  border: none; border-radius: 24px; padding: 12px 28px; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.picker-start-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(30, 46, 43, 0.18); }
+.picker-start-btn:active { transform: translateY(0); }
+
+.patient-bar {
+  position: sticky; top: 12px; z-index: 40;
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 0.5px solid var(--clinic-line); border-radius: 12px;
+  padding: 10px 16px; margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(30, 46, 43, 0.08);
+}
+.patient-bar-label { font-size: 11px; font-family: var(--font-mono); color: var(--clinic-ink2); }
+.patient-bar-name { font-size: 13px; font-weight: 600; color: var(--clinic-ink); }
+.patient-bar select.patient-select { font-size: 12px; height: 28px; min-width: 0; padding: 0 6px; }
+.current-patient-tag { font-size: 12px; color: var(--clinic-ink2); }
+.current-patient-tag strong { color: var(--clinic-ink); }
+
 @keyframes thermoPulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
+  50% { transform: scale(1.04); }
 }
-#thermo-svg circle.pulse {
+#thermo-svg rect.pulse {
   transform-box: fill-box;
   transform-origin: center;
   animation: thermoPulse 1.3s ease-in-out infinite;

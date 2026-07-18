@@ -44,6 +44,11 @@
     <a href="#act-05">05 traitement</a>
   </div>
 
+<div class="patient-bar" id="patient-bar">
+  <span class="patient-bar-label">Patient examiné</span>
+  <select class="patient-select" aria-label="Changer de patient"></select>
+</div>
+
   <!-- ACTE 01 · FIÈVRE - module connecté aux données réelles (js/act-01-fievre.js) -->
   <div class="card" id="act-01">
     <p class="eyebrow red">01 · FIÈVRE</p>
@@ -51,7 +56,7 @@
     <p class="card-text">Anomalie de température de surface de la mer, par pays et territoire du Pacifique. Les seuils fébrile (+1σ) et critique (+2σ) sont recalculés pour chaque pays sur la période de référence 1990-2020.</p>
 
     <div class="controls">
-      <select id="country-select"></select>
+      <span class="current-patient-tag">Patient : <strong id="act01-patient-name"></strong></span>
       <button id="play-btn" aria-label="Lecture automatique">
         <svg id="play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         <svg id="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
@@ -93,39 +98,38 @@
     </div>
   </div>
 
-  <!-- ACTE 02 · ŒDÈME - maquette statique, à connecter aux anomalies du niveau de la mer (js/act-02-oedeme.js) -->
+  <!-- ACTE 02 · ŒDÈME — connecté aux données réelles (js/act-02-oedeme.js) -->
   <div class="card" id="act-02">
-    <p class="eyebrow teal">02 · ŒDÈME <span class="placeholder-tag">maquette - données à venir</span></p>
-    <h3>Le corps gonfle, inégalement</h3>
-    <p class="card-text">Trois atolls, trois vitesses de montée des eaux - l'œdème ne progresse pas au même rythme partout.</p>
-    <div class="bar-group">
-      <div>
-        <p class="country-name">Tuvalu</p>
-        <div class="bars">
-          <div style="height:30%; background:#9FE1CB;"></div>
-          <div style="height:48%; background:#5DCAA5;"></div>
-          <div style="height:70%; background:#1D9E75;"></div>
-          <div style="height:92%; background:#0F6E56;"></div>
-        </div>
+    <p class="eyebrow teal">02 · ŒDÈME</p>
+    <h3>Le corps gonfle, à des vitesses différentes</h3>
+    <p class="card-text">Le niveau de la mer ne redescend presque jamais : contrairement à la fièvre, l'œdème ne fait que s'installer. On compare donc le rythme de chaque pays à la moyenne mondiale mesurée par satellite depuis 1993, plutôt qu'à sa propre histoire.</p>
+
+    <div class="main-row">
+      <div class="thermo-wrap">
+        <svg id="oedeme-gauge-svg" width="44" height="230"></svg>
       </div>
-      <div>
-        <p class="country-name">Kiribati</p>
-        <div class="bars">
-          <div style="height:35%; background:#9FE1CB;"></div>
-          <div style="height:52%; background:#5DCAA5;"></div>
-          <div style="height:66%; background:#1D9E75;"></div>
-          <div style="height:80%; background:#0F6E56;"></div>
-        </div>
+      <div class="readout">
+        <p class="year">Patient : <strong id="oedeme-patient-name"></strong></p>
+        <p class="value" id="oedeme-value-label"></p>
+        <span class="badge" id="oedeme-status-badge"></span>
+        <p class="seuils" id="oedeme-seuils-label"></p>
+        <p class="seuils" id="oedeme-cumul-label"></p>
       </div>
-      <div>
-        <p class="country-name">Fidji</p>
-        <div class="bars">
-          <div style="height:28%; background:#9FE1CB;"></div>
-          <div style="height:34%; background:#5DCAA5;"></div>
-          <div style="height:40%; background:#1D9E75;"></div>
-          <div style="height:48%; background:#0F6E56;"></div>
-        </div>
-      </div>
+    </div>
+
+    <svg id="oedeme-chart-svg" width="100%" height="140" viewBox="0 0 600 140" style="display:block;"></svg>
+
+    <p class="footnote">Source : Pacific Data Hub, .Stat Explorer — anomalies du niveau de la mer (données arrondies à 10 cm dans la source). Référence mondiale : mesures altimétriques satellite 1993-2023 (Nerem et al. ; NASA/GIEC AR6).</p>
+  </div>
+
+  <div class="card">
+    <p class="overview-title">Vue d'ensemble</p>
+    <p class="overview-sub" id="oedeme-overview-sub">Tous les pays et territoires, comparés à la moyenne mondiale.</p>
+    <svg id="oedeme-overview-svg" width="100%" viewBox="0 0 600 110"></svg>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#0F6E56"></span>modéré</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>aggravé</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#A32D2D"></span>sévère</div>
     </div>
   </div>
 
@@ -206,10 +210,8 @@
 
 </div>
 
-<!-- Données -->
 <script src="data/sst-data.js"></script>
-
-<!-- Fonctions partagées -->
+<script src="js/patient-state.js"></script>  <!-- ← nouvelle ligne, avant utils.js -->
 <script src="js/utils.js"></script>
 
 <!-- Un fichier par acte, chacun isolé dans sa propre IIFE -->
