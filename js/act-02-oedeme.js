@@ -9,6 +9,12 @@
 //   - aggravé : taux > 3.4 mm/an
 //   - sévère  : taux > 4.5 mm/an (rythme mondial le plus récent, 2023)
 //
+// Visuel : deux coupes de peau côte à côte, façon planche anatomique
+// (épiderme / derme / hypoderme / muscle), avec le fluide interstitiel qui
+// monte plus ou moins haut. Le panneau de gauche est une référence FIXE
+// (calée sur la moyenne mondiale), le panneau de droite montre le patient
+// courant - pour rendre l'écart visible sans avoir à lire les chiffres.
+//
 // Dépend de : d3 (CDN), data/sea-level-data.js (SEA_LEVEL_DATA),
 // js/patient-state.js (getCurrentPatient, setCurrentPatient),
 // js/utils.js (linearRegression, getStatusKey, STATUS_COLORS).
@@ -33,72 +39,243 @@
     return { rateMmYear: slope, intercept, cumulMm, values };
   }
 
-  // --- Jauge : même grammaire visuelle que le thermomètre de l'acte 01,
-  // mais les seuils sont FIXES (référence mondiale), pas propres au pays. ---
+  // --- Jauge : deux coupes de peau côte à côte (référence / patient), avec
+  // le fluide interstitiel qui monte entre les couches. C'est littéralement
+  // ce qu'est un œdème, et la comparaison directe rend l'écart visible sans
+  // avoir à lire les seuils.
   const gaugeSvg = d3.select('#oedeme-gauge-svg');
-  const TUBE_X = 20, TUBE_W = 26, TUBE_TOP = 8, TUBE_H = 190;
-  gaugeSvg.attr('width', 64).attr('height', TUBE_TOP + TUBE_H + 8);
+  const PANEL_W = 90, PANEL_GAP = 14, MARGIN_X = 13;
+  const LEFT_X = MARGIN_X;
+  const RIGHT_X = LEFT_X + PANEL_W + PANEL_GAP;
+  const PANEL_TOP = 46, PANEL_H = 150;
+  const PANEL_BOTTOM = PANEL_TOP + PANEL_H;
+  const PANEL_LABEL_Y = 40;
+  const BADGE_Y = PANEL_BOTTOM + 16;
+  const CANVAS_W = RIGHT_X + PANEL_W + MARGIN_X;
+  const CANVAS_H = BADGE_Y + 14;
+  const FLUID_NEUTRAL_COLOR = '#3B82C4'; // bleu "eau" neutre, au départ de l'animation
+  const WAVE_AMP = 3; // amplitude de la vague au repos
+  const LEVEL_RISE_DURATION = 3000; // doit rester identique dans les fonctions de badge
+
+  gaugeSvg.attr('width', CANVAS_W).attr('height', CANVAS_H).attr('viewBox', `0 0 ${CANVAS_W} ${CANVAS_H}`);
+
+  function levelY(v) {
+    return PANEL_TOP + PANEL_H * (1 - pct(v));
+  }
+
+  function waveD(x0, x1, yBase, amp) {
+    const xm = (x0 + x1) / 2;
+    return `M${x0},${yBase} Q${(x0 + xm) / 2},${yBase - amp} ${xm},${yBase} `
+      + `T${x1},${yBase} L${x1},${PANEL_BOTTOM} L${x0},${PANEL_BOTTOM} Z`;
+  }
 
   const defs = gaugeSvg.append('defs');
-  const gradients = {
-    normal: ['#6FD9B8', '#0F6E56'],
-    febrile: ['#F2C879', '#BA7517'],
-    critique: ['#E8938A', '#A32D2D']
-  };
-  Object.entries(gradients).forEach(([key, [light, dark]]) => {
-    const grad = defs.append('linearGradient')
-      .attr('id', `grad-oedeme-${key}`).attr('x1', '0').attr('x2', '0').attr('y1', '0').attr('y2', '1');
-    grad.append('stop').attr('offset', '0%').attr('stop-color', light);
-    grad.append('stop').attr('offset', '100%').attr('stop-color', dark);
+
+  gaugeSvg.append('line').attr('x1', 8).attr('x2', 22).attr('y1', 11).attr('y2', 11)
+    .attr('stroke', '#BA7517').attr('stroke-width', 1.5).attr('stroke-dasharray', '3 3');
+  gaugeSvg.append('text').attr('x', 26).attr('y', 14)
+    .style('font-size', '8px').style('font-family', 'monospace').style('fill', '#5B6C68')
+    .text('moy. mondiale (3,4)');
+
+  gaugeSvg.append('line').attr('x1', 8).attr('x2', 22).attr('y1', 23).attr('y2', 23)
+    .attr('stroke', '#A32D2D').attr('stroke-width', 1.5).attr('stroke-dasharray', '3 3');
+  gaugeSvg.append('text').attr('x', 26).attr('y', 26)
+    .style('font-size', '8px').style('font-family', 'monospace').style('fill', '#5B6C68')
+    .text('rythme 2023 (4,5)');
+
+  function drawPanel(x0, title) {
+    const x1 = x0 + PANEL_W;
+    const clipId = `oedeme-clip-${x0}`;
+    defs.append('clipPath').attr('id', clipId)
+      .append('rect').attr('x', x0).attr('y', PANEL_TOP).attr('width', PANEL_W).attr('height', PANEL_H).attr('rx', 4);
+
+    gaugeSvg.append('text').attr('x', x0 + PANEL_W / 2).attr('y', PANEL_LABEL_Y).attr('text-anchor', 'middle')
+      .style('font-size', '9px').style('font-family', 'monospace').style('fill', '#5B6C68')
+      .text(title);
+
+    const tissueLayer = gaugeSvg.append('g').attr('clip-path', `url(#${clipId})`);
+
+    const layers = [
+      { y0: PANEL_TOP, y1: PANEL_TOP + 16, fill: '#F3DFCB' },
+      { y0: PANEL_TOP + 16, y1: PANEL_TOP + 56, fill: '#F8E1E5' },
+      { y0: PANEL_TOP + 56, y1: PANEL_TOP + 101, fill: '#FBF0C9' },
+      { y0: PANEL_TOP + 101, y1: PANEL_BOTTOM, fill: '#B5504F' }
+    ];
+    layers.forEach(l => {
+      tissueLayer.append('rect')
+        .attr('x', x0).attr('y', l.y0).attr('width', PANEL_W).attr('height', l.y1 - l.y0)
+        .attr('fill', l.fill);
+    });
+
+    d3.range(5).forEach(i => {
+      tissueLayer.append('path')
+        .attr('d', 'M0,0 Q3,-3 6,0 Q3,2 0,0 Z')
+        .attr('fill', '#C9A87E').attr('opacity', 0.7)
+        .attr('transform', `translate(${x0 + 8 + i * 16 + Math.random() * 3}, ${PANEL_TOP + 2})`);
+    });
+
+    d3.range(4).forEach(() => {
+      tissueLayer.append('circle')
+        .attr('cx', x0 + 8 + Math.random() * (PANEL_W - 16)).attr('cy', PANEL_TOP + 9 + Math.random() * 3).attr('r', 1.8)
+        .attr('fill', '#D9B98F');
+    });
+
+    d3.range(8).forEach(() => {
+      tissueLayer.append('circle')
+        .attr('cx', x0 + 8 + Math.random() * (PANEL_W - 16)).attr('cy', PANEL_TOP + 24 + Math.random() * 28).attr('r', 2.2)
+        .attr('fill', '#F3C9D1').attr('stroke', '#E3A7B3').attr('stroke-width', 0.6);
+    });
+
+    d3.range(5).forEach(() => {
+      tissueLayer.append('circle')
+        .attr('cx', x0 + 10 + Math.random() * (PANEL_W - 20)).attr('cy', PANEL_TOP + 68 + Math.random() * 24).attr('r', 5)
+        .attr('fill', '#F2DE9E');
+    });
+
+    d3.range(3).forEach(i => {
+      tissueLayer.append('line')
+        .attr('x1', x0 + 4).attr('x2', x1 - 4)
+        .attr('y1', PANEL_TOP + 112 + i * 12).attr('y2', PANEL_TOP + 112 + i * 12)
+        .attr('stroke', '#C96A69').attr('stroke-width', 1).attr('opacity', 0.5);
+    });
+
+    const fluidLayer = gaugeSvg.append('g').attr('clip-path', `url(#${clipId})`);
+    const fluidPath = fluidLayer.append('path').attr('d', waveD(x0, x1, PANEL_BOTTOM, WAVE_AMP));
+
+    gaugeSvg.append('rect')
+      .attr('x', x0).attr('y', PANEL_TOP).attr('width', PANEL_W).attr('height', PANEL_H).attr('rx', 4)
+      .attr('fill', 'none').attr('stroke', '#1E2E2B').attr('stroke-width', 1.5);
+
+    const badgeRect = gaugeSvg.append('rect')
+      .attr('x', x0 + PANEL_W / 2 - 37).attr('y', BADGE_Y - 9).attr('width', 74).attr('height', 18).attr('rx', 9);
+    const badgeText = gaugeSvg.append('text')
+      .attr('x', x0 + PANEL_W / 2).attr('y', BADGE_Y + 1).attr('text-anchor', 'middle').attr('dominant-baseline', 'central')
+      .style('font-size', '9px').style('font-family', 'monospace').style('font-weight', '600');
+
+    return { x0, x1, fluidPath, badgeRect, badgeText };
+  }
+
+  const refPanel = drawPanel(LEFT_X, 'référence');
+  const patientPanel = drawPanel(RIGHT_X, 'patient');
+
+  const yAvg = levelY(GLOBAL_RATE_AVERAGE);
+  const yRecent = levelY(GLOBAL_RATE_RECENT);
+  [[yAvg, '#BA7517'], [yRecent, '#A32D2D']].forEach(([y, color]) => {
+    [refPanel, patientPanel].forEach(p => {
+      gaugeSvg.append('line').attr('x1', p.x0).attr('x2', p.x1).attr('y1', y).attr('y2', y)
+        .attr('stroke', '#FFFFFF').attr('stroke-width', 3).attr('opacity', 0.9);
+      gaugeSvg.append('line').attr('x1', p.x0).attr('x2', p.x1).attr('y1', y).attr('y2', y)
+        .attr('stroke', color).attr('stroke-width', 1.2).attr('stroke-dasharray', '3 3');
+    });
   });
 
-  const shadow = defs.append('filter').attr('id', 'oedeme-shadow').attr('x', '-40%').attr('y', '-15%').attr('width', '180%').attr('height', '130%');
-  shadow.append('feDropShadow').attr('dx', 0).attr('dy', 1).attr('stdDeviation', 1.2).attr('flood-color', '#1E2E2B').attr('flood-opacity', 0.15);
+  function applyPanelVisual(panel, targetY, targetColor, animate) {
+    panel.fluidPath.interrupt();
 
-  const tickValues = d3.range(SCALE_MIN, SCALE_MAX + 0.01, 0.5);
-  tickValues.forEach(val => {
-    const y = TUBE_TOP + TUBE_H * (1 - pct(val));
-    const isMajor = Math.abs(Math.round(val) - val) < 0.01;
-    gaugeSvg.append('line')
-      .attr('x1', TUBE_X - 4 - (isMajor ? 4 : 0)).attr('x2', TUBE_X - 4)
-      .attr('y1', y).attr('y2', y)
-      .attr('stroke', '#C7D0CD').attr('stroke-width', 1);
-  });
+    if (!animate) {
+      panel.fluidPath.attr('d', waveD(panel.x0, panel.x1, targetY, WAVE_AMP)).attr('fill', targetColor);
+      return;
+    }
 
-  defs.append('clipPath').attr('id', 'oedeme-clip').append('rect')
-    .attr('x', TUBE_X).attr('y', TUBE_TOP).attr('width', TUBE_W).attr('height', TUBE_H).attr('rx', TUBE_W / 2);
+    panel.fluidPath
+      .attr('d', waveD(panel.x0, panel.x1, PANEL_BOTTOM, WAVE_AMP))
+      .attr('fill', FLUID_NEUTRAL_COLOR)
+      .transition().duration(LEVEL_RISE_DURATION).ease(d3.easeElasticOut.amplitude(1).period(0.6))
+        .attrTween('d', () => {
+          const interpY = d3.interpolateNumber(PANEL_BOTTOM, targetY);
+          return t => {
+            const y = interpY(t);
+            const amp = WAVE_AMP + 6 * (1 - t) * Math.sin(t * Math.PI * 8);
+            return waveD(panel.x0, panel.x1, y, amp);
+          };
+        })
+      .transition().duration(350)
+        .attr('fill', targetColor);
+  }
 
-  gaugeSvg.append('rect')
-    .attr('x', TUBE_X).attr('y', TUBE_TOP).attr('width', TUBE_W).attr('height', TUBE_H)
-    .attr('rx', TUBE_W / 2).attr('fill', '#FAFCFB').attr('stroke', '#DCE3E1').attr('stroke-width', 1.5)
-    .attr('filter', 'url(#oedeme-shadow)');
+  function makeBadgeApplier(textSel, rectSel) {
+    let badgeTimer = null;
+    return function apply(text, colors, animate) {
+      if (badgeTimer) { clearTimeout(badgeTimer); badgeTimer = null; }
 
-  const tubeContent = gaugeSvg.append('g').attr('clip-path', 'url(#oedeme-clip)');
+      const setContent = () => {
+        textSel.text(text).style('fill', colors.fill);
+        rectSel.attr('fill', colors.bg);
+      };
 
-  // Zones fixes : les seuils sont mondiaux, donc identiques quel que soit le
-  // pays affiché (contrairement à l'acte 01 où elles bougent par pays).
-  const pAvg = pct(GLOBAL_RATE_AVERAGE), pRecent = pct(GLOBAL_RATE_RECENT);
-  const yAvg = TUBE_TOP + TUBE_H * (1 - pAvg);
-  const yRecent = TUBE_TOP + TUBE_H * (1 - pRecent);
-  tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('fill', '#E1F5EE')
-    .attr('y', yAvg).attr('height', TUBE_TOP + TUBE_H - yAvg);
-  tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('fill', '#FAEEDA')
-    .attr('y', yRecent).attr('height', yAvg - yRecent);
-  tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('fill', '#FCEBEB')
-    .attr('y', TUBE_TOP).attr('height', yRecent - TUBE_TOP);
+      if (!animate) {
+        textSel.style('opacity', 1);
+        rectSel.style('opacity', 1);
+        setContent();
+        return;
+      }
 
-  const fill = tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W);
+      textSel.style('opacity', 0);
+      rectSel.style('opacity', 0);
+      badgeTimer = setTimeout(() => {
+        setContent();
+        textSel.transition().duration(350).style('opacity', 1);
+        rectSel.transition().duration(350).style('opacity', 1);
+        badgeTimer = null;
+      }, LEVEL_RISE_DURATION);
+    };
+  }
 
-  gaugeSvg.append('rect')
-    .attr('x', TUBE_X + 4).attr('y', TUBE_TOP + 5).attr('width', 4).attr('height', TUBE_H - 10)
-    .attr('rx', 2).attr('fill', '#FFFFFF').attr('opacity', 0.4);
+  const applyRefBadge = makeBadgeApplier(refPanel.badgeText, refPanel.badgeRect);
+  const applyPatientBadge = makeBadgeApplier(patientPanel.badgeText, patientPanel.badgeRect);
 
-  gaugeSvg.append('path').attr('d', 'M8,-5 L0,0 L8,5 Z').attr('fill', '#BA7517')
-    .attr('transform', `translate(${TUBE_X + TUBE_W + 2}, ${yAvg})`);
-  gaugeSvg.append('path').attr('d', 'M8,-5 L0,0 L8,5 Z').attr('fill', '#A32D2D')
-    .attr('transform', `translate(${TUBE_X + TUBE_W + 2}, ${yRecent})`);
+  applyPanelVisual(refPanel, yAvg, STATUS_COLORS.normal.fill, false);
+  applyRefBadge('référence', STATUS_COLORS.normal, false);
 
-  // --- Courbe temporelle + droite de tendance ---
+  let lastPatientLevelY = PANEL_BOTTOM;
+  let lastPatientColor = FLUID_NEUTRAL_COLOR;
+  let lastPatientStatusKey = 'normal';
+
+  let readoutBadgeTimer = null;
+  function applyReadoutBadge(animate) {
+    const badge = document.getElementById('oedeme-status-badge');
+    const colors = STATUS_COLORS[lastPatientStatusKey];
+    if (readoutBadgeTimer) { clearTimeout(readoutBadgeTimer); readoutBadgeTimer = null; }
+
+    const setBadgeContent = () => {
+      badge.textContent = STATUS_LABELS_OEDEME[lastPatientStatusKey];
+      badge.style.background = colors.bg;
+      badge.style.color = colors.fill;
+    };
+
+    if (!animate) {
+      badge.style.transition = 'none';
+      badge.style.opacity = 1;
+      setBadgeContent();
+      return;
+    }
+
+    badge.style.transition = 'none';
+    badge.style.opacity = 0;
+    readoutBadgeTimer = setTimeout(() => {
+      setBadgeContent();
+      badge.style.transition = 'opacity 350ms ease';
+      badge.style.opacity = 1;
+      readoutBadgeTimer = null;
+    }, LEVEL_RISE_DURATION);
+  }
+
+  const actSection = document.getElementById('act-02');
+  if (actSection && 'IntersectionObserver' in window) {
+    const sectionObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          applyPanelVisual(refPanel, yAvg, STATUS_COLORS.normal.fill, true);
+          applyRefBadge('référence', STATUS_COLORS.normal, true);
+          applyPanelVisual(patientPanel, lastPatientLevelY, lastPatientColor, true);
+          applyPatientBadge(STATUS_LABELS_OEDEME[lastPatientStatusKey], STATUS_COLORS[lastPatientStatusKey], true);
+          applyReadoutBadge(true);
+        }
+      });
+    }, { threshold: 0.3 });
+    sectionObserver.observe(actSection);
+  }
+
   const chartSvg = d3.select('#oedeme-chart-svg');
   const CHART_W = 600, CHART_H = 140, CHART_PAD = { top: 10, right: 10, bottom: 24, left: 44 };
   const xScale = d3.scaleLinear().domain([years[0], years[years.length - 1]]).range([CHART_PAD.left, CHART_W - CHART_PAD.right]);
@@ -109,9 +286,6 @@
   const linePath = chartSvg.append('path').attr('fill', 'none').attr('stroke', '#B4B2A9').attr('stroke-width', 1.5);
   const trendPath = chartSvg.append('line').attr('stroke', '#1E2E2B').attr('stroke-width', 1.2).attr('stroke-dasharray', '4 3');
 
-  // --- Vue d'ensemble : même grammaire que l'acte 01 (ligne graduée,
-  // essaim de points), avec repères mondiaux fixes plutôt que des zones
-  // propres à chaque pays. ---
   const overviewSvg = d3.select('#oedeme-overview-svg');
   const OV_W = 600, OV_H = 110;
   overviewSvg.attr('viewBox', `0 0 ${OV_W} ${OV_H}`);
@@ -191,10 +365,7 @@
     circlesMerged.transition().duration(300)
       .attr('cx', d => d.x).attr('cy', d => d.y)
       .attr('fill', d => STATUS_COLORS[d.statusKey].fill)
-      .attr('fill-opacity', d => d.name === getCurrentPatient() ? 1 : 0.4)
-      .attr('stroke', d => d.name === getCurrentPatient() ? '#1E2E2B' : 'none')
-      .attr('stroke-width', d => d.name === getCurrentPatient() ? 2 : 0);
-
+      .attr('fill-opacity', d => d.name === getCurrentPatient() ? 1 : 0.4);
     circles.exit().remove();
 
     const selected = data.find(d => d.name === getCurrentPatient());
@@ -223,17 +394,16 @@
     const statusKey = getStatusKey(rateMmYear, GLOBAL_RATE_AVERAGE, GLOBAL_RATE_RECENT);
     const colors = STATUS_COLORS[statusKey];
 
-    const fillY = TUBE_TOP + TUBE_H * (1 - pct(rateMmYear));
-    fill.transition().duration(250)
-      .attr('y', fillY).attr('height', TUBE_TOP + TUBE_H - fillY)
-      .attr('fill', `url(#grad-oedeme-${statusKey})`);
+    lastPatientLevelY = levelY(rateMmYear);
+    lastPatientColor = colors.fill;
+    applyPanelVisual(patientPanel, lastPatientLevelY, lastPatientColor, false);
+
+    lastPatientStatusKey = statusKey;
+    applyPatientBadge(STATUS_LABELS_OEDEME[statusKey], colors, false);
 
     document.getElementById('oedeme-value-label').textContent = (rateMmYear >= 0 ? '+' : '') + rateMmYear.toFixed(2) + ' mm/an';
     document.getElementById('oedeme-value-label').style.color = colors.fill;
-    const badge = document.getElementById('oedeme-status-badge');
-    badge.textContent = STATUS_LABELS_OEDEME[statusKey];
-    badge.style.background = colors.bg;
-    badge.style.color = colors.fill;
+    applyReadoutBadge(false);
 
     document.getElementById('oedeme-seuils-label').textContent =
       `Référence mondiale : ${GLOBAL_RATE_AVERAGE} mm/an (moy. satellite 1993-2023) · ${GLOBAL_RATE_RECENT} mm/an (rythme 2023)`;

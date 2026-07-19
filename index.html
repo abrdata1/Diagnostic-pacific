@@ -105,11 +105,9 @@
     <p class="card-text">Le niveau de la mer ne redescend presque jamais : contrairement à la fièvre, l'œdème ne fait que s'installer. On compare donc le rythme de chaque pays à la moyenne mondiale mesurée par satellite depuis 1993, plutôt qu'à sa propre histoire.</p>
 
     <div class="main-row">
-      <div class="thermo-wrap">
-        <svg id="oedeme-gauge-svg" width="44" height="230"></svg>
-      </div>
+      <svg id="oedeme-gauge-svg" width="220" height="226"></svg>
+
       <div class="readout">
-        <p class="year">Patient : <strong id="oedeme-patient-name"></strong></p>
         <p class="value" id="oedeme-value-label"></p>
         <span class="badge" id="oedeme-status-badge"></span>
         <p class="seuils" id="oedeme-seuils-label"></p>
@@ -211,7 +209,8 @@
 </div>
 
 <script src="data/sst-data.js"></script>
-<script src="js/patient-state.js"></script>  <!-- ← nouvelle ligne, avant utils.js -->
+<script src="data/sea-level-data.js"></script>
+<script src="js/patient-state.js"></script>  
 <script src="js/utils.js"></script>
 
 <!-- Un fichier par acte, chacun isolé dans sa propre IIFE -->
