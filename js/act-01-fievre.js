@@ -1,6 +1,8 @@
 // act-01-fievre.js
 // Acte 01 · Fièvre - anomalies de température de surface de la mer.
-// Dépend de : d3 (CDN), data/sst-data.js (SST_DATA), js/utils.js
+// Dépend de : d3 (CDN), data/sst-data.js (SST_DATA), js/patient-state.js
+// (getCurrentPatient, setCurrentPatient), js/utils.js (computeStats,
+// getStatusKey, STATUS_COLORS, STATUS_LABELS).
 
 (function () {
   const BASELINE_START = 1990;
@@ -11,6 +13,7 @@
 
   const years = SST_DATA.years;
   const countryNames = Object.keys(SST_DATA.countries);
+
   const slider = document.getElementById('year-slider');
   slider.min = years[0];
   slider.max = years[years.length - 1];
@@ -18,23 +21,19 @@
   document.getElementById('year-min').textContent = years[0];
   document.getElementById('year-max').textContent = years[years.length - 1];
 
-  // Vital du masthead : anomalie moyenne du Pacifique pour la dernière année disponible
+  // Vital du masthead : anomalie de température du patient courant, mise à
+  // jour dans render() (dernière année disponible, indépendante du slider).
   const lastYearIdx = years.length - 1;
-  const pacificMean = d3.mean(countryNames.map(n => SST_DATA.countries[n][lastYearIdx]));
   const headerTemp = document.getElementById('header-temp');
-  if (headerTemp) headerTemp.textContent = (pacificMean >= 0 ? '+' : '') + pacificMean.toFixed(1) + '°C';
 
   function pct(v) {
     return Math.max(0, Math.min(1, (v - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)));
   }
 
   // --- Thermomètre ---
-// --- Thermomètre ---
-  // Une seule capsule arrondie aux deux extrémités (comme un pictogramme de
-  // thermomètre classique), plus simple qu'un tube + bulbe séparés.
   const thermoSvg = d3.select('#thermo-svg');
-  const TUBE_X = 20, TUBE_W = 26, TUBE_TOP = 8, TUBE_H = 190;
-  thermoSvg.attr('width', 64).attr('height', TUBE_TOP + TUBE_H + 8);
+  const TUBE_X = 20, TUBE_W = 26, TUBE_TOP = 8, TUBE_H = 190, BULB_CY = TUBE_TOP + TUBE_H + 18, BULB_R = 20;
+  thermoSvg.attr('width', 64).attr('height', BULB_CY + BULB_R + 6);
 
   const defs = thermoSvg.append('defs');
 
@@ -51,9 +50,9 @@
     grad.append('stop').attr('offset', '100%').attr('stop-color', dark);
   });
 
-  // Ombre douce pour donner un peu de relief à la capsule entière
-  const shadow = defs.append('filter').attr('id', 'thermo-shadow').attr('x', '-40%').attr('y', '-15%').attr('width', '180%').attr('height', '130%');
-  shadow.append('feDropShadow').attr('dx', 0).attr('dy', 1).attr('stdDeviation', 1.2).attr('flood-color', '#1E2E2B').attr('flood-opacity', 0.15);
+  // Ombre douce pour donner du relief au bulbe
+  const shadow = defs.append('filter').attr('id', 'thermo-shadow').attr('x', '-60%').attr('y', '-60%').attr('width', '220%').attr('height', '220%');
+  shadow.append('feDropShadow').attr('dx', 0).attr('dy', 1).attr('stdDeviation', 1.4).attr('flood-color', '#1E2E2B').attr('flood-opacity', 0.18);
 
   // Graduations le long du tube, tous les 0,5°C (plus longues tous les 1°C)
   const tickValues = d3.range(Math.ceil(SCALE_MIN * 2) / 2, SCALE_MAX + 0.01, 0.5);
@@ -66,15 +65,13 @@
       .attr('stroke', '#C7D0CD').attr('stroke-width', 1);
   });
 
-  // Capsule : contour + contenu clippé (rx = moitié de la largeur → arrondi
-  // complet en haut et en bas, donc plus besoin d'un bulbe séparé)
+  // Tube en verre : contour + contenu clippé pour un rendu propre
   defs.append('clipPath').attr('id', 'thermo-clip').append('rect')
     .attr('x', TUBE_X).attr('y', TUBE_TOP).attr('width', TUBE_W).attr('height', TUBE_H).attr('rx', TUBE_W / 2);
 
-  const tubeOutline = thermoSvg.append('rect')
+  thermoSvg.append('rect')
     .attr('x', TUBE_X).attr('y', TUBE_TOP).attr('width', TUBE_W).attr('height', TUBE_H)
-    .attr('rx', TUBE_W / 2).attr('fill', '#FAFCFB').attr('stroke', '#DCE3E1').attr('stroke-width', 1.5)
-    .attr('filter', 'url(#thermo-shadow)');
+    .attr('rx', TUBE_W / 2).attr('fill', '#FAFCFB').attr('stroke', '#DCE3E1').attr('stroke-width', 1.5);
 
   const tubeContent = thermoSvg.append('g').attr('clip-path', 'url(#thermo-clip)');
   const zoneNormal = tubeContent.append('rect').attr('x', TUBE_X).attr('width', TUBE_W).attr('fill', '#E1F5EE');
@@ -86,6 +83,10 @@
   thermoSvg.append('rect')
     .attr('x', TUBE_X + 4).attr('y', TUBE_TOP + 5).attr('width', 4).attr('height', TUBE_H - 10)
     .attr('rx', 2).attr('fill', '#FFFFFF').attr('opacity', 0.4);
+
+  const bulb = thermoSvg.append('circle')
+    .attr('cx', TUBE_X + TUBE_W / 2).attr('cy', BULB_CY).attr('r', BULB_R)
+    .attr('stroke', '#DCE3E1').attr('stroke-width', 1.5).attr('filter', 'url(#thermo-shadow)');
 
   // Curseurs de seuils, repositionnés à chaque render()
   const seuil1Marker = thermoSvg.append('path').attr('d', 'M8,-5 L0,0 L8,5 Z').attr('fill', '#BA7517');
@@ -104,11 +105,6 @@
   const markerPoint = chartSvg.append('circle').attr('r', 4);
 
   // --- Vue d'ensemble : ligne graduée façon "chambre d'hôpital" ---
-  // Chaque pays est un point sur un même axe d'anomalie (même échelle que le
-  // thermomètre), dispersé verticalement pour éviter les chevauchements
-  // (beeswarm). La couleur du point est le seul porteur du statut clinique -
-  // pas de bande de fond, puisque les seuils sont propres à chaque pays et
-  // qu'une bande commune raconterait une histoire fausse.
   const overviewSvg = d3.select('#overview-svg');
   const OV_W = 600;
   const OV_H = 110;
@@ -118,13 +114,11 @@
   const LINE_Y = 55;
   const SWARM_Y_MIN = 28, SWARM_Y_MAX = 82;
 
-  // ligne de référence
   overviewSvg.append('line')
     .attr('x1', overviewScale(SCALE_MIN)).attr('x2', overviewScale(SCALE_MAX))
     .attr('y1', LINE_Y).attr('y2', LINE_Y)
     .attr('stroke', '#B4B2A9');
 
-  // graduations
   [-2, -1, 0, 1].forEach(v => {
     const x = overviewScale(v);
     overviewSvg.append('line')
@@ -140,15 +134,14 @@
 
   const pointsLayer = overviewSvg.append('g');
 
-  // Label du pays sélectionné : toujours visible, suit le point d'une année
-  // à l'autre pour qu'on ne perde jamais son pays de vue dans l'essaim.
-  const selectedLabel = overviewSvg.append('text')
+  const selectedLabelGroup = overviewSvg.append('g').style('pointer-events', 'none');
+  const selectedLabelBg = selectedLabelGroup.append('rect')
+    .attr('rx', 4).attr('ry', 4).attr('fill', '#FFFFFF').attr('stroke', '#DCE3E1').attr('stroke-width', 1);
+  const selectedLabel = selectedLabelGroup.append('text')
     .attr('text-anchor', 'middle')
     .style('font-size', '11px').style('font-family', 'monospace').style('font-weight', '600')
-    .style('fill', '#1E2E2B').style('pointer-events', 'none');
+    .style('fill', '#1E2E2B');
 
-  // Disperse les points verticalement pour éviter qu'ils ne se chevauchent
-  // (beeswarm), tout en gardant leur position horizontale fidèle à la valeur.
   function computeBeeswarm(points) {
     const simulation = d3.forceSimulation(points)
       .force('x', d3.forceX(d => overviewScale(d.v)).strength(1))
@@ -188,7 +181,9 @@
     const circlesEnter = circles.enter().append('circle')
       .attr('r', 5)
       .style('cursor', 'pointer')
-      .on('click', (event, d) => { setCurrentPatient(d.name); stopPlaying(); render(); });
+      // Cliquer un point change le patient partagé : les autres actes
+      // (une fois connectés) réagiront aussi via l'événement patientchange.
+      .on('click', (event, d) => { setCurrentPatient(d.name); });
     circlesEnter.append('title');
 
     const circlesMerged = circlesEnter.merge(circles);
@@ -200,18 +195,25 @@
       .attr('cx', d => d.x).attr('cy', d => d.y)
       .attr('fill', d => STATUS_COLORS[d.statusKey].fill)
       .attr('fill-opacity', d => d.name === getCurrentPatient() ? 1 : 0.4)
+      .attr('stroke', d => d.name === getCurrentPatient() ? '#1E2E2B' : 'none')
       .attr('stroke-width', d => d.name === getCurrentPatient() ? 2 : 0);
 
     circles.exit().remove();
 
     const selected = data.find(d => d.name === getCurrentPatient());
     if (selected) {
-      selectedLabel.transition().duration(300)
-        .attr('x', Math.max(60, Math.min(540, selected.x)))
-        .attr('y', selected.y - 11)
-        .text(selected.name);
+      const labelX = Math.max(60, Math.min(540, selected.x));
+      const labelY = selected.y - 14;
+      selectedLabel.text(selected.name);
+      const bbox = selectedLabel.node().getBBox();
+      const paddingX = 5, paddingY = 2;
+      selectedLabelGroup.style('display', null);
+      selectedLabelGroup.transition().duration(300).attr('transform', `translate(${labelX}, ${labelY})`);
+      selectedLabelBg
+        .attr('x', bbox.x - paddingX).attr('y', bbox.y - paddingY)
+        .attr('width', bbox.width + paddingX * 2).attr('height', bbox.height + paddingY * 2);
     } else {
-      selectedLabel.text('');
+      selectedLabelGroup.style('display', 'none');
     }
   }
 
@@ -219,7 +221,12 @@
     const name = getCurrentPatient();
     const patientNameEl = document.getElementById('act01-patient-name');
     if (patientNameEl) patientNameEl.textContent = name;
+
     const values = SST_DATA.countries[name];
+    if (headerTemp) {
+      const lastValue = values[lastYearIdx];
+      headerTemp.textContent = (lastValue >= 0 ? '+' : '') + lastValue.toFixed(1) + '°C';
+    }
     const year = parseInt(slider.value, 10);
     const idx = years.indexOf(year);
     const v = values[idx];
@@ -241,8 +248,8 @@
     mercury.transition().duration(250)
       .attr('y', mercuryY).attr('height', TUBE_TOP + TUBE_H - mercuryY)
       .attr('fill', `url(#grad-${statusKey})`);
-    
-    tubeOutline.classed('pulse', statusKey === 'critique');
+    bulb.transition().duration(250).attr('fill', `url(#grad-${statusKey})`);
+    bulb.classed('pulse', statusKey === 'critique');
 
     seuil1Marker.transition().duration(250).attr('transform', `translate(${TUBE_X + TUBE_W + 2}, ${y1})`);
     seuil2Marker.transition().duration(250).attr('transform', `translate(${TUBE_X + TUBE_W + 2}, ${y2})`);
@@ -307,6 +314,10 @@
   });
 
   slider.addEventListener('input', () => { stopPlaying(); render(); });
+
+  // Le patient est changé ailleurs (sélecteur d'accueil, barre collante,
+  // clic sur un point de la vue d'ensemble) : on se contente de se re-rendre.
   document.addEventListener('patientchange', () => { stopPlaying(); render(); });
+
   render();
 })();

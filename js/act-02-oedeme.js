@@ -39,6 +39,9 @@
     return { rateMmYear: slope, intercept, cumulMm, values };
   }
 
+  // Vital du masthead : taux de montée du patient courant, mis à jour dans render()
+  const headerSeaLevel = document.getElementById('header-sealevel');
+
   // --- Jauge : deux coupes de peau côte à côte (référence / patient), avec
   // le fluide interstitiel qui monte entre les couches. C'est littéralement
   // ce qu'est un œdème, et la comparaison directe rend l'écart visible sans
@@ -55,7 +58,18 @@
   const CANVAS_H = BADGE_Y + 14;
   const FLUID_NEUTRAL_COLOR = '#3B82C4'; // bleu "eau" neutre, au départ de l'animation
   const WAVE_AMP = 3; // amplitude de la vague au repos
-  const LEVEL_RISE_DURATION = 3000; // doit rester identique dans les fonctions de badge
+  const LEVEL_RISE_DURATION = 2000; // doit rester identique dans les fonctions de badge
+
+  // Palette de l'EAU elle-même, distincte de STATUS_COLORS (utilisée pour
+  // les badges). Le fluide reste toujours reconnaissable comme de l'eau -
+  // plus sombre et trouble quand c'est sévère, jamais rouge (qui se
+  // lirait comme du sang dans une coupe de peau).
+  const WATER_COLORS = {
+    normal: '#7EC8E3',
+    febrile: '#2E86AB',
+    critique: '#0B4F6C'
+  };
+  const WATER_FOAM = '#EAF6FC'; // liseré d'écume sur la crête de la vague
 
   gaugeSvg.attr('width', CANVAS_W).attr('height', CANVAS_H).attr('viewBox', `0 0 ${CANVAS_W} ${CANVAS_H}`);
 
@@ -140,7 +154,9 @@
     });
 
     const fluidLayer = gaugeSvg.append('g').attr('clip-path', `url(#${clipId})`);
-    const fluidPath = fluidLayer.append('path').attr('d', waveD(x0, x1, PANEL_BOTTOM, WAVE_AMP));
+    const fluidPath = fluidLayer.append('path')
+      .attr('d', waveD(x0, x1, PANEL_BOTTOM, WAVE_AMP))
+      .attr('stroke', WATER_FOAM).attr('stroke-width', 1.5);
 
     gaugeSvg.append('rect')
       .attr('x', x0).attr('y', PANEL_TOP).attr('width', PANEL_W).attr('height', PANEL_H).attr('rx', 4)
@@ -224,7 +240,7 @@
   const applyRefBadge = makeBadgeApplier(refPanel.badgeText, refPanel.badgeRect);
   const applyPatientBadge = makeBadgeApplier(patientPanel.badgeText, patientPanel.badgeRect);
 
-  applyPanelVisual(refPanel, yAvg, STATUS_COLORS.normal.fill, false);
+  applyPanelVisual(refPanel, yAvg, WATER_COLORS.normal, false);
   applyRefBadge('référence', STATUS_COLORS.normal, false);
 
   let lastPatientLevelY = PANEL_BOTTOM;
@@ -265,7 +281,7 @@
     const sectionObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          applyPanelVisual(refPanel, yAvg, STATUS_COLORS.normal.fill, true);
+          applyPanelVisual(refPanel, yAvg, WATER_COLORS.normal, true);
           applyRefBadge('référence', STATUS_COLORS.normal, true);
           applyPanelVisual(patientPanel, lastPatientLevelY, lastPatientColor, true);
           applyPatientBadge(STATUS_LABELS_OEDEME[lastPatientStatusKey], STATUS_COLORS[lastPatientStatusKey], true);
@@ -365,7 +381,10 @@
     circlesMerged.transition().duration(300)
       .attr('cx', d => d.x).attr('cy', d => d.y)
       .attr('fill', d => STATUS_COLORS[d.statusKey].fill)
-      .attr('fill-opacity', d => d.name === getCurrentPatient() ? 1 : 0.4);
+      .attr('fill-opacity', d => d.name === getCurrentPatient() ? 1 : 0.4)
+      .attr('stroke', d => d.name === getCurrentPatient() ? '#1E2E2B' : 'none')
+      .attr('stroke-width', d => d.name === getCurrentPatient() ? 2 : 0);
+
     circles.exit().remove();
 
     const selected = data.find(d => d.name === getCurrentPatient());
@@ -394,8 +413,12 @@
     const statusKey = getStatusKey(rateMmYear, GLOBAL_RATE_AVERAGE, GLOBAL_RATE_RECENT);
     const colors = STATUS_COLORS[statusKey];
 
+    if (headerSeaLevel) {
+      headerSeaLevel.textContent = (rateMmYear >= 0 ? '+' : '') + rateMmYear.toFixed(1) + ' mm/an';
+    }
+
     lastPatientLevelY = levelY(rateMmYear);
-    lastPatientColor = colors.fill;
+    lastPatientColor = WATER_COLORS[statusKey];
     applyPanelVisual(patientPanel, lastPatientLevelY, lastPatientColor, false);
 
     lastPatientStatusKey = statusKey;
