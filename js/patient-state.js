@@ -1,4 +1,15 @@
 // patient-state.js
+// État partagé du "patient" (pays) actuellement examiné, utilisé par tous
+// les actes. Gère le sélecteur dans la barre patient, et la mémorisation
+// du choix d'une visite à l'autre.
+//
+// Tout élément marqué de la classe "patient-select" reste synchronisé
+// automatiquement. Les autres scripts (act-0X) lisent le patient courant
+// via getCurrentPatient() et écoutent l'événement "patientchange" pour se
+// re-rendre quand il change.
+//
+// Chargé après data/sst-data.js, avant js/utils.js et js/act-0X-*.js.
+
 (function () {
   const STORAGE_KEY = 'diagnostic-pacifique-patient';
   const countryNames = Object.keys(SST_DATA.countries);
@@ -33,10 +44,6 @@
 
   function syncControls() {
     document.querySelectorAll('.patient-select').forEach(el => { el.value = currentPatient; });
-    document.querySelectorAll('.patient-bar-name').forEach(el => { el.textContent = currentPatient; });
-    document.querySelectorAll('.patient-chip').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.patient === currentPatient);
-    });
   }
 
   document.querySelectorAll('.patient-select').forEach(populateSelect);
@@ -44,15 +51,6 @@
   document.querySelectorAll('.patient-select').forEach(el => {
     el.addEventListener('change', (e) => setCurrentPatient(e.target.value));
   });
-  document.querySelectorAll('.patient-chip').forEach(btn => {
-    btn.addEventListener('click', () => setCurrentPatient(btn.dataset.patient));
-  });
-  const startBtn = document.getElementById('patient-start-btn');
-  if (startBtn) {
-    startBtn.addEventListener('click', () => {
-      document.getElementById('act-01').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-  }
 
   window.getCurrentPatient = getCurrentPatient;
   window.setCurrentPatient = setCurrentPatient;

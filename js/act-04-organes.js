@@ -40,8 +40,13 @@
 
   // Le déclin va du "bon" (moyenne+2σ, rare) au pire observé - on encadre un
   // peu plus large pour que même Guam (le cas le plus sévère) reste lisible.
-  const SCALE_MIN = Math.max(0, Math.min(...currentValues) - 0.05);
-  const SCALE_MAX = Math.min(1, Math.max(...currentValues) + 0.05);
+  // Échelle ABSOLUE de l'indice (0 = toutes les espèces éteintes, 1 = aucune
+  // menacée), pas une fenêtre resserrée sur les valeurs observées. Avec une
+  // échelle relative, même le pays le plus critique servait lui-même de
+  // référence basse : son propre battement gardait toujours une hauteur
+  // "normale", ce qui masquait la gravité au lieu de la montrer.
+  const SCALE_MIN = 0;
+  const SCALE_MAX = 1;
   function pct(v) {
     return Math.max(0, Math.min(1, (v - SCALE_MIN) / (SCALE_MAX - SCALE_MIN)));
   }
@@ -67,11 +72,21 @@
     .attr('x1', ECG_PAD.left).attr('x2', ECG_W - ECG_PAD.right)
     .attr('stroke', '#A32D2D').attr('stroke-width', 1).attr('stroke-dasharray', '4 3');
 
-  const seuilAffaibliLabel = ecgSvg.append('text')
-    .attr('x', ECG_W - ECG_PAD.right + 6).style('font-size', '9px').style('font-family', 'monospace').style('fill', '#5B6C68')
+  // Légende compacte, séparée des lignes : quand les deux seuils sont
+  // proches (ce qui arrive souvent), des étiquettes collées à chaque ligne
+  // se chevauchent. Une légende à part reste lisible dans tous les cas.
+  ecgSvg.append('line').attr('x1', ECG_W - ECG_PAD.right + 6).attr('x2', ECG_W - ECG_PAD.right + 18)
+    .attr('y1', 10).attr('y2', 10)
+    .attr('stroke', '#BA7517').attr('stroke-width', 1.5).attr('stroke-dasharray', '3 3');
+  ecgSvg.append('text').attr('x', ECG_W - ECG_PAD.right + 22).attr('y', 13)
+    .style('font-size', '8px').style('font-family', 'monospace').style('fill', '#5B6C68')
     .text('affaibli');
-  const seuilCritiqueLabel = ecgSvg.append('text')
-    .attr('x', ECG_W - ECG_PAD.right + 6).style('font-size', '9px').style('font-family', 'monospace').style('fill', '#5B6C68')
+
+  ecgSvg.append('line').attr('x1', ECG_W - ECG_PAD.right + 6).attr('x2', ECG_W - ECG_PAD.right + 18)
+    .attr('y1', 22).attr('y2', 22)
+    .attr('stroke', '#A32D2D').attr('stroke-width', 1.5).attr('stroke-dasharray', '3 3');
+  ecgSvg.append('text').attr('x', ECG_W - ECG_PAD.right + 22).attr('y', 25)
+    .style('font-size', '8px').style('font-family', 'monospace').style('fill', '#5B6C68')
     .text('critique');
 
   const ecgPath = ecgSvg.append('path').attr('fill', 'none').attr('stroke-width', 1.5);
@@ -92,7 +107,9 @@
    * réparties sur toute la période (pas une par année - avec 32 ans, un
    * battement par année produit un mur de dents de scie illisible).
    * Chaque battement garde sa hauteur proportionnelle à la vraie valeur
-   * de l'indice cette année-là.
+   * de l'indice cette année-là, et tous - y compris le dernier - ont la
+   * même forme symétrique (chaque battement occupe sa propre cellule
+   * pleine, il n'y a donc pas de cas particulier à gérer pour le dernier).
    */
   function sampleIndices() {
     const n = years.length;
@@ -106,14 +123,13 @@
   function buildEcgPath(values) {
     const idxs = sampleIndices();
     const plotWidth = ECG_W - ECG_PAD.left - ECG_PAD.right;
-    const stepX = plotWidth / (idxs.length - 1);
+    const stepX = plotWidth / idxs.length;
     const dipDepth = AMPLITUDE_MAX * 0.18; // petite redescente sous la ligne de base, façon complexe QRS
     let d = `M${ECG_PAD.left},${BASELINE_Y}`;
     let lastPeakX = ECG_PAD.left, lastPeakY = BASELINE_Y;
     const points = [];
 
     idxs.forEach((yearIdx, i) => {
-      const isLast = i === idxs.length - 1;
       const xCenter = ECG_PAD.left + i * stepX;
       const peakHeight = pct(values[yearIdx]) * AMPLITUDE_MAX;
       const xPeak = xCenter + stepX * 0.4;
@@ -121,19 +137,13 @@
 
       d += ` L${xCenter + stepX * 0.15},${BASELINE_Y}`;
       d += ` L${xPeak},${yPeak}`;
+      d += ` L${xCenter + stepX * 0.5},${BASELINE_Y + dipDepth}`;
+      d += ` L${xCenter + stepX * 0.65},${BASELINE_Y}`;
+      d += ` L${xCenter + stepX},${BASELINE_Y}`;
+
       lastPeakX = xPeak;
       lastPeakY = yPeak;
       points.push({ year: years[yearIdx], value: values[yearIdx], x: xPeak, y: yPeak });
-
-      if (!isLast) {
-        d += ` L${xCenter + stepX * 0.5},${BASELINE_Y + dipDepth}`;
-        d += ` L${xCenter + stepX * 0.65},${BASELINE_Y}`;
-        d += ` L${xCenter + stepX},${BASELINE_Y}`;
-      } else {
-        // Dernier battement : une petite redescente, sans dépasser le cadre
-        const xDip = Math.min(xPeak + stepX * 0.15, ECG_W - ECG_PAD.right);
-        d += ` L${xDip},${BASELINE_Y + dipDepth * 0.6}`;
-      }
     });
 
     return { d, lastPeakX, lastPeakY, points };
@@ -291,8 +301,6 @@
     const yCritique = BASELINE_Y - pct(SEUIL_CRITIQUE) * AMPLITUDE_MAX;
     seuilAffaibliLine.attr('y1', yAffaibli).attr('y2', yAffaibli);
     seuilCritiqueLine.attr('y1', yCritique).attr('y2', yCritique);
-    seuilAffaibliLabel.attr('y', yAffaibli + 3);
-    seuilCritiqueLabel.attr('y', yCritique + 3);
 
     renderOverview();
   }

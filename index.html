@@ -31,7 +31,7 @@
       </div>
       <div class="vital-chip">
         <i class="ti ti-heartbeat" style="color:var(--clinic-febrile);"></i>
-        <span>Liste rouge <span class="num">à venir</span></span>
+        <span>Liste rouge <span class="num" id="header-redlist">à venir</span></span>
       </div>
     </div>
   </div>
@@ -55,8 +55,9 @@
     <h3>La température ne redescend plus</h3>
     <p class="card-text">Anomalie de température de surface de la mer, par pays et territoire du Pacifique. Les seuils fébrile (+1σ) et critique (+2σ) sont recalculés pour chaque pays sur la période de référence 1990-2020.</p>
 
+    <p class="patient-tag">Patient : <strong id="act01-patient-name"></strong></p>
+
     <div class="controls">
-      <span class="current-patient-tag">Patient : <strong id="act01-patient-name"></strong></span>
       <button id="play-btn" aria-label="Lecture automatique">
         <svg id="play-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         <svg id="pause-icon" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
@@ -85,6 +86,11 @@
     <svg id="chart-svg" width="100%" height="140" viewBox="0 0 600 140" style="display:block;"></svg>
 
     <p class="footnote">Source : Pacific Data Hub, .Stat Explorer - indicateurs du changement climatique. Seuils calculés selon la méthode des vagues de chaleur marines (Hobday et al.), adaptée à la granularité annuelle disponible.</p>
+
+    <details class="methodo-toggle">
+      <summary>Comprendre la donnée, sans la métaphore</summary>
+      <p class="methodo-content">Cette courbe montre l'<strong>anomalie de température de surface de la mer</strong> : l'écart, en degrés Celsius, entre la température mesurée une année donnée et une moyenne de référence calculée sur 1990-2020, pour chaque pays et territoire du Pacifique. Les données combinent mesures satellite et relevés in situ, compilées par le Pacific Data Hub. Le réchauffement des eaux de surface a des conséquences directes et documentées : blanchissement des coraux au-delà de certains seuils de chaleur soutenue, déplacement des zones de pêche à mesure que les espèces migrent vers des eaux plus fraîches, et intensification potentielle des cyclones tropicaux, qui puisent une partie de leur énergie dans la chaleur de l'océan.</p>
+    </details>
   </div>
 
   <div class="card">
@@ -104,8 +110,10 @@
     <h3>Le corps gonfle, à des vitesses différentes</h3>
     <p class="card-text">Le niveau de la mer ne redescend presque jamais : contrairement à la fièvre, l'œdème ne fait que s'installer. On compare donc le rythme de chaque pays à la moyenne mondiale mesurée par satellite depuis 1993, plutôt qu'à sa propre histoire.</p>
 
+    <p class="patient-tag">Patient : <strong id="oedeme-patient-name"></strong></p>
+
     <div class="main-row">
-      <svg id="oedeme-gauge-svg" width="220" height="226"></svg>
+      <svg id="oedeme-gauge-svg" width="200" height="226"></svg>
 
       <div class="readout">
         <p class="value" id="oedeme-value-label"></p>
@@ -115,14 +123,23 @@
       </div>
     </div>
 
+    <svg id="oedeme-risk-indicator-svg" width="100%" height="60" viewBox="0 0 600 60" style="display:block; margin-bottom:12px;"></svg>
+
     <svg id="oedeme-chart-svg" width="100%" height="140" viewBox="0 0 600 140" style="display:block;"></svg>
 
-    <p class="footnote">Source : Pacific Data Hub, .Stat Explorer — anomalies du niveau de la mer (données arrondies à 10 cm dans la source). Référence mondiale : mesures altimétriques satellite 1993-2023 (Nerem et al. ; NASA/GIEC AR6).</p>
+    <p class="footnote">Source : Pacific Data Hub, .Stat Explorer — anomalies du niveau de la mer (données arrondies à 10 cm dans la source) et population en zone côtière de basse altitude. Référence mondiale du taux : mesures altimétriques satellite 1993-2023 (Nerem et al. ; NASA/GIEC AR6).</p>
+
+    <details class="methodo-toggle">
+      <summary>Comprendre la donnée, sans la métaphore</summary>
+      <p class="methodo-content">Cette carte mesure l'<strong>anomalie du niveau de la mer</strong>, en millimètres, par rapport à une référence établie au début des mesures satellite altimétriques, en 1993. La hausse observée résulte de deux phénomènes physiques distincts : la <strong>dilatation thermique</strong> de l'eau de mer sous l'effet du réchauffement, et l'<strong>apport d'eau</strong> provenant de la fonte des glaciers continentaux et des calottes polaires du Groenland et de l'Antarctique.</p>
+      <p class="methodo-content" style="margin-top:10px;">Le <strong>statut affiché</strong> (modéré/aggravé/sévère) ne se base plus uniquement sur cette vitesse de montée, mais sur un <strong>score de risque</strong> qui la combine à l'exposition réelle de chaque pays : <em>score = (% de la population vivant sous 10 m d'altitude) × (taux de montée en mm/an)</em>. C'est le principe aléa × exposition utilisé en analyse de risque climatique — un pays où la mer monte vite mais dont la population vit en altitude (ex. Papouasie-Nouvelle-Guinée) devient moins prioritaire qu'un atoll bas où la mer monte "dans la moyenne mondiale" mais où la quasi-totalité du territoire est menacée (ex. Tuvalu).</p>
+      <p class="methodo-content" style="margin-top:10px;">Ce score reste un <strong>indice construit</strong>, pas une mesure physique directe : il sert à comparer les pays entre eux, pas à quantifier un risque de submersion en valeur absolue. Il lui manque aussi le troisième terme classique du risque — la <strong>capacité d'adaptation</strong> (digues, ressources, options de relocalisation) — faute de donnée disponible pour l'intégrer. Par ailleurs, la donnée d'exposition de la Papouasie-Nouvelle-Guinée est marquée "valeur manquante" dans la source malgré la présence d'un chiffre, et celle de Tokelau est estimée par analogie avec les autres atolls purs du Pacifique (aucune valeur mesurée disponible) — à vérifier avant toute publication finale.</p>
+    </details>
   </div>
 
   <div class="card">
     <p class="overview-title">Vue d'ensemble</p>
-    <p class="overview-sub" id="oedeme-overview-sub">Tous les pays et territoires, comparés à la moyenne mondiale.</p>
+    <p class="overview-sub" id="oedeme-overview-sub">Tous les pays et territoires, comparés par score de risque (vitesse × exposition).</p>
     <svg id="oedeme-overview-svg" width="100%" viewBox="0 0 600 110"></svg>
     <div class="legend">
       <div class="legend-item"><span class="legend-dot" style="background:#0F6E56"></span>modéré</div>
@@ -131,26 +148,47 @@
     </div>
   </div>
 
-  <!-- ACTE 03 · LÉSIONS - maquette statique, à connecter au trait de côte (js/act-03-lesions.js) -->
+  <!-- ACTE 03 · LÉSIONS CUTANÉES - connecté aux données réelles (js/act-03-lesions.js) -->
   <div class="card" id="act-03">
-    <p class="eyebrow amber">03 · LÉSIONS CUTANÉES <span class="placeholder-tag">maquette - données à venir</span></p>
+    <p class="eyebrow amber">03 · LÉSIONS CUTANÉES</p>
     <h3>La peau du littoral se craquelle</h3>
-    <p class="card-text">Comparaison du trait de côte d'un même atoll, à vingt ans d'écart.</p>
-    <div style="display:flex; gap:24px; justify-content:center; align-items:center;">
+    <p class="card-text">Comparaison du trait de côte entre le premier relevé satellite disponible et aujourd'hui, point par point le long de la côte. Le statut compare le taux médian de chaque pays à la moyenne des 21 pays du Pacifique.</p>
+
+    <p class="patient-tag">Patient : <strong id="lesions-patient-name"></strong></p>
+
+    <div style="display:flex; justify-content:center; gap:32px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
       <div style="text-align:center;">
-        <svg width="140" height="90" viewBox="0 0 140 90"><title>Trait de côte en 2005</title>
-          <path d="M20 60 Q 30 30 55 28 Q 85 24 110 40 Q 128 50 120 65 Q 90 78 55 75 Q 30 74 20 60 Z" fill="#EAF3DE" stroke="#639922" stroke-width="1.5"/>
-        </svg>
-        <p style="font-size:11px; font-family:var(--font-mono); color:var(--clinic-ink2); margin:4px 0 0;">2005</p>
+        <p class="seuils" style="margin:0 0 8px;" id="lesions-before-label"></p>
+        <svg id="lesions-before-svg" width="140" height="140" viewBox="0 0 140 140"></svg>
       </div>
-      <i class="ti ti-arrow-right" style="font-size:20px; color:var(--clinic-ink2);"></i>
       <div style="text-align:center;">
-        <svg width="140" height="90" viewBox="0 0 140 90"><title>Trait de côte en 2025, recul visible</title>
-          <path d="M20 60 Q 30 30 55 28 Q 85 24 110 40 Q 128 50 120 65 Q 90 78 55 75 Q 30 74 20 60 Z" fill="none" stroke="#B4B2A9" stroke-width="1" stroke-dasharray="3 3"/>
-          <path d="M28 58 Q 36 36 56 33 Q 80 30 100 43 Q 114 52 108 62 Q 85 72 56 70 Q 36 69 28 58 Z" fill="#FAC775" stroke="#BA7517" stroke-width="1.5"/>
-        </svg>
-        <p style="font-size:11px; font-family:var(--font-mono); color:var(--clinic-ink2); margin:4px 0 0;">2025</p>
+        <p class="seuils" style="margin:0 0 8px;">aujourd'hui</p>
+        <svg id="lesions-after-svg" width="140" height="140" viewBox="0 0 140 140"></svg>
       </div>
+    </div>
+
+    <div style="text-align:center;">
+      <p class="value" id="lesions-value-label" style="margin:0 0 8px;"></p>
+      <span class="badge" id="lesions-status-badge"></span>
+      <p class="seuils" id="lesions-detail-label"></p>
+    </div>
+
+    <p class="footnote">Source : Digital Earth Pacific Coastlines (dep_ls_coastlines), traits de côte annuels dérivés d'imagerie satellite Landsat. Taux et NSM (Net Shoreline Movement) calculés uniquement sur les points de confiance "good". Négatif = recul (érosion), positif = croissance (accrétion).</p>
+
+    <details class="methodo-toggle">
+      <summary>Comprendre la donnée, sans la métaphore</summary>
+      <p class="methodo-content">Cette donnée provient de <strong>Digital Earth Pacific Coastlines</strong>, un produit qui combine des dizaines de milliers d'images satellite Landsat pour reconstituer la position annuelle du trait de côte le long de transects espacés régulièrement. Pour chaque point, deux statistiques sont calculées : le <strong>taux annuel</strong> (mm/an, régression linéaire sur toutes les années disponibles) et le <strong>NSM</strong> (Net Shoreline Movement, la distance entre le tout premier et le tout dernier relevé disponible pour ce point). Les points affichés sont filtrés à ceux marqués "bonne confiance" par la méthode source, pour exclure les mesures perturbées par les nuages, les vagues ou des artefacts de modélisation. La médiane est utilisée plutôt que la moyenne pour agréger les points par pays, car quelques points extrêmes (travaux portuaires, remblaiement) faussent fortement la moyenne sans refléter une tendance côtière réelle.</p>
+    </details>
+  </div>
+
+  <div class="card">
+    <p class="overview-title">Vue d'ensemble</p>
+    <p class="overview-sub" id="lesions-overview-sub">Tous les pays et territoires, comparés par taux médian d'évolution du trait de côte.</p>
+    <svg id="lesions-overview-svg" width="100%" viewBox="0 0 600 110"></svg>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#0F6E56"></span>modéré</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>aggravé</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#A32D2D"></span>sévère</div>
     </div>
   </div>
 
@@ -160,7 +198,7 @@
     <h3>Le pouls faiblit</h3>
     <p class="card-text">L'indice de la Liste rouge décline — les battements de l'écosystème marin s'affaiblissent avec le temps. Comparaison à la moyenne des 21 pays du Pacifique en 2024, faute de seuil international déjà établi pour cet indice.</p>
 
-    <p class="year">Patient : <strong id="organes-patient-name"></strong></p>
+    <p class="patient-tag">Patient : <strong id="organes-patient-name"></strong></p>
 
     <div style="display:flex; gap:24px; align-items:baseline; margin:8px 0 16px;">
       <div>
@@ -179,6 +217,11 @@
     <p class="seuils" id="organes-seuils-label"></p>
 
     <p class="footnote">Source : Pacific Data Hub, .Stat Explorer — SDG 15.5.1 Red List Index (BirdLife International et UICN). L'indice va de 0 (toutes les espèces évaluées éteintes) à 1 (aucune espèce menacée).</p>
+
+    <details class="methodo-toggle">
+      <summary>Comprendre la donnée, sans la métaphore</summary>
+      <p class="methodo-content">L'<strong>indice de la Liste rouge</strong> (Red List Index) mesure l'évolution du risque d'extinction d'un ensemble d'espèces évaluées (mammifères, oiseaux, amphibiens, coraux, cycas), sur une échelle de 0 à 1, calculé par l'UICN et BirdLife International à partir des catégories de menace attribuées à chaque espèce. Il ne mesure pas le réchauffement climatique en lui-même, mais sert d'indicateur de son impact cumulé sur la biodiversité, combiné à d'autres pressions comme la perte d'habitat, les espèces invasives ou la surexploitation des ressources. C'est un indicateur officiel de l'Objectif de développement durable 15 (vie terrestre) des Nations unies. Il n'existe pas de seuil critique international publié pour cet indice : les seuils utilisés ici sont calculés statistiquement, en comparant chaque pays à la moyenne et à l'écart-type des 21 pays du Pacifique pour l'année la plus récente disponible.</p>
+    </details>
   </div>
 
   <div class="card">
@@ -193,53 +236,102 @@
   </div>
 
 
-  <!-- ACTE 05 · TRAITEMENT - maquette statique, à connecter aux mesures de gestion des pêches (js/act-05-traitement.js) -->
+  <!-- ACTE 05 · TRAITEMENT - connecté aux données réelles (js/act-05-traitement.js) -->
   <div class="card" id="act-05">
-    <p class="eyebrow teal">05 · TRAITEMENT <span class="placeholder-tag">maquette - données à venir</span></p>
-    <h3>L'ordonnance est déjà rédigée</h3>
-    <table style="width:100%; border-collapse:collapse; font-size:13px;">
-      <tr style="border-bottom:0.5px solid var(--clinic-line);">
-        <td style="padding:6px 0; color:var(--clinic-ink2);">Fidji</td>
-        <td style="padding:6px 0; text-align:right;"><i class="ti ti-check" style="color:var(--clinic-normal);"></i> mesures en place</td>
-      </tr>
-      <tr style="border-bottom:0.5px solid var(--clinic-line);">
-        <td style="padding:6px 0; color:var(--clinic-ink2);">Kiribati</td>
-        <td style="padding:6px 0; text-align:right;"><i class="ti ti-x" style="color:var(--clinic-critique);"></i> mesures partielles</td>
-      </tr>
-      <tr>
-        <td style="padding:6px 0; color:var(--clinic-ink2);">Tuvalu</td>
-        <td style="padding:6px 0; text-align:right;"><i class="ti ti-check" style="color:var(--clinic-normal);"></i> mesures en place</td>
-      </tr>
-    </table>
+    <p class="eyebrow teal">05 · TRAITEMENT</p>
+    <h3>L'ordonnance est déjà rédigée, plus ou moins suivie</h3>
+    <p class="card-text">Deux mesures préventives déjà en place ou non : la couverture d'aires marines protégées dans la zone économique exclusive (cible officielle SDG 14.5 : au moins 10%), et l'existence d'une stratégie nationale de réduction des risques de catastrophe alignée sur le cadre de Sendai.</p>
+
+    <p class="patient-tag">Patient : <strong id="traitement-patient-name"></strong></p>
+
+    <div style="display:flex; gap:28px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+      <div style="flex-shrink:0;">
+        <svg id="traitement-mpa-svg" width="120" height="120" viewBox="0 0 120 120"></svg>
+      </div>
+      <div style="flex:1; min-width:180px;">
+        <p class="seuils" style="margin:0 0 4px;">Aires marines protégées</p>
+        <p class="value" id="traitement-mpa-label" style="margin:0 0 12px;"></p>
+        <p class="seuils" style="margin:0 0 4px;">Stratégie nationale (cadre de Sendai)</p>
+        <p style="font-size:16px; font-weight:500; margin:0;" id="traitement-drr-label"></p>
+      </div>
+    </div>
+
+    <div style="text-align:center;">
+      <span class="badge" id="traitement-status-badge"></span>
+      <p class="seuils" id="traitement-detail-label"></p>
+    </div>
+
+    <p class="footnote">Source : Pacific Data Hub, .Stat Explorer — SDG 14.5.1 (couverture d'aires marines protégées, ZEE) et SDG 13.1.2 (dispositif législatif/réglementaire de gestion des risques de catastrophe, cadre de Sendai).</p>
+
+    <details class="methodo-toggle">
+      <summary>Comprendre la donnée, sans la métaphore</summary>
+      <p class="methodo-content">Deux indicateurs officiels des Nations unies sont combinés ici. Le <strong>14.5.1</strong> mesure la part de la zone économique exclusive (ZEE) d'un pays placée sous protection légale (réserves marines, récifs protégés, zones de pêche réglementées) — la cible SDG 14.5 fixe un objectif chiffré de <strong>10% minimum</strong>, contrairement aux autres actes de ce dossier qui n'ont pas de seuil international déjà établi. Le <strong>13.1.2</strong> indique si le pays a adopté et met en œuvre une stratégie nationale de réduction des risques de catastrophe alignée sur le cadre de Sendai (oui/non). Pour les territoires non autonomes (Samoa américaines, Guam, Îles Mariannes du Nord, Tokelau, Wallis-et-Futuna), cette donnée n'est pas disponible car la compétence relève de leur métropole plutôt que d'une stratégie nationale propre — ils ne sont ni pénalisés ni récompensés dans le score combiné pour cette raison. Le score final est une moyenne simple des deux composantes, plafonnée à 1 dès que la cible des 10% est atteinte pour les aires protégées.</p>
+    </details>
   </div>
 
-  <!-- ÉPILOGUE -->
-  <div style="text-align:center; margin-bottom:6px;">
-    <p style="font-size:11px; font-family:var(--font-mono); color:var(--clinic-ink2); letter-spacing:0.04em; margin:0 0 10px;">FICHE PATIENT - SYNTHÈSE</p>
-    <div class="summary-grid">
-      <div class="summary-card">
-        <p>Tuvalu</p>
-        <span class="badge" style="background:var(--clinic-critique-bg); color:var(--clinic-critique);">critique</span>
-      </div>
-      <div class="summary-card">
-        <p>Kiribati</p>
-        <span class="badge" style="background:var(--clinic-febrile-bg); color:var(--clinic-febrile);">surveillance</span>
-      </div>
-      <div class="summary-card">
-        <p>Fidji</p>
-        <span class="badge" style="background:var(--clinic-normal-bg); color:var(--clinic-normal);">stable</span>
-      </div>
+  <div class="card">
+    <p class="overview-title">Vue d'ensemble</p>
+    <p class="overview-sub" id="traitement-overview-sub">Tous les pays et territoires, comparés par score de protection combiné.</p>
+    <svg id="traitement-overview-svg" width="100%" viewBox="0 0 600 110"></svg>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#0F6E56"></span>protégé</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#BA7517"></span>partiel</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#A32D2D"></span>non protégé</div>
     </div>
   </div>
 
-  <p class="page-footnote">Acte 01 (fièvre) est connecté aux données réelles du Pacific Data Hub. Les actes 02 à 05 sont encore des maquettes illustratives, à connecter aux jeux de données correspondants.</p>
+  <!-- ÉPILOGUE : synthèse dynamique du patient courant (js/synthese.js) -->
+  <div class="card" id="epilogue">
+    <p style="font-size:11px; font-family:var(--font-mono); color:var(--clinic-ink2); letter-spacing:0.04em; margin:0 0 4px;">DOSSIER PATIENT — SYNTHÈSE FINALE</p>
+    <h3 style="margin:0 0 4px;">Patient : <strong id="epilogue-patient-name"></strong></h3>
+    <p class="seuils" id="epilogue-summary-line" style="margin:0 0 4px;"></p>
+    <p class="seuils" id="epilogue-treatment-line" style="margin:0 0 16px;"></p>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <p>Fièvre</p>
+        <span class="badge" id="epilogue-badge-fievre"></span>
+      </div>
+      <div class="summary-card">
+        <p>Œdème</p>
+        <span class="badge" id="epilogue-badge-oedeme"></span>
+      </div>
+      <div class="summary-card">
+        <p>Lésions</p>
+        <span class="badge" id="epilogue-badge-lesions"></span>
+      </div>
+      <div class="summary-card">
+        <p>Organes vitaux</p>
+        <span class="badge" id="epilogue-badge-organes"></span>
+      </div>
+      <div class="summary-card">
+        <p>Traitement</p>
+        <span class="badge" id="epilogue-badge-traitement"></span>
+      </div>
+    </div>
+
+    <p class="methodo-content" style="margin-top:20px;">
+      La fièvre, l'œdème, les lésions du littoral et le pouls affaibli ne sont pas des maladies indépendantes : ce sont les effets mesurables d'un même réchauffement, qui se cumulent plutôt qu'ils ne s'additionnent simplement. Une mer plus chaude prend plus de volume et monte plus vite ; une mer qui monte grignote des habitats déjà sous pression et des littoraux déjà fragilisés. Le diagnostic n'est donc pas de désigner un pays "malade" et les autres "sains" — aucun des 21 pays du Pacifique n'échappe complètement à ces symptômes à la fois, seule l'intensité varie.
+    </p>
+    <p class="methodo-content" style="margin-top:10px;">
+      Ce que ces données ne montrent pas, en revanche, c'est peut-être le facteur qui compte le plus : la capacité de chaque pays à encaisser le choc. Un pays où la mer monte "dans la moyenne mondiale" peut être en danger existentiel s'il ne dépasse nulle part quelques mètres d'altitude — quand un pays montagneux résiste sans peine à un rythme bien plus rapide. Le pronostic dépend autant de la vitesse de la maladie que de la vulnérabilité du patient qui la subit.
+    </p>
+    <p class="methodo-content" style="margin-top:10px;">
+      C'est le sens du dernier examen de ce dossier (acte 05) : les mesures de protection déjà en place. Le diagnostic est sérieux, mais il n'est pas figé — certains pays ont déjà commencé le traitement, d'autres pas encore.
+    </p>
+  </div>
+
+  <p class="page-footnote">Les cinq actes de ce dossier sont connectés à des données réelles (Pacific Data Hub et Digital Earth Pacific).</p>
 
 </div>
 
 <script src="data/sst-data.js"></script>
 <script src="data/sea-level-data.js"></script>
+<script src="data/exposure-lecz-data.js"></script>
 <script src="data/red-list-data.js"></script>
-<script src="js/patient-state.js"></script>  
+<script src="data/coastline-data.js"></script>
+<script src="data/protection-data.js"></script>
+<script src="js/patient-state.js"></script>
 <script src="js/utils.js"></script>
 
 <!-- Un fichier par acte, chacun isolé dans sa propre IIFE -->
@@ -248,6 +340,7 @@
 <script src="js/act-03-lesions.js"></script>
 <script src="js/act-04-organes.js"></script>
 <script src="js/act-05-traitement.js"></script>
+<script src="js/synthese.js"></script>
 
 </body>
 </html>

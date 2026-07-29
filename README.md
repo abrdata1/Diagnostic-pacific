@@ -1,2 +1,0 @@
-# Pacific dataviz challenge
-
